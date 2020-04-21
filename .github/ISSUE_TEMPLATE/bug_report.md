@@ -1,0 +1,11 @@
+# Bug_Report
+
+
+## Context
+This page tracks bootstrap decisions for bug_report during bootstrap push work.
+
+## Development
+- Aligned local and CI checks for the main flow.
+
+## Scratch Notes
+Early notes are still uneven and may be folded into clearer sections later.
