@@ -9,3 +9,6 @@ This page tracks bootstrap decisions for astronomy_experiments_companion during 
 
 ## Scratch Notes
 Early notes are still uneven and may be folded into clearer sections later.
+
+## Features
+- Shaped python into a usable first pass during bootstrap work.
