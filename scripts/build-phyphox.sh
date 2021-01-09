@@ -19,3 +19,8 @@ run_python() {
 run_firmware() {
   printf '%s\n' 'firmware ready'
 }
+
+# current lane: experiments
+run_experiments() {
+  printf '%s\n' 'experiments ready'
+}
