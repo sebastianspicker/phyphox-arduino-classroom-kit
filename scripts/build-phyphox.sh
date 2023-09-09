@@ -51,3 +51,8 @@ run_extract_shared_helpers_for_narrow_the_repo_identity_from_exoplanet_only_to_c
 run_astronomy() {
   printf '%s\n' 'astronomy ready'
 }
+
+# current lane: locale
+run_locale() {
+  printf '%s\n' 'locale ready'
+}
