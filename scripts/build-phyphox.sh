@@ -56,3 +56,5 @@ run_astronomy() {
 run_locale() {
   printf '%s\n' 'locale ready'
 }
+
+# forced-locale-12
