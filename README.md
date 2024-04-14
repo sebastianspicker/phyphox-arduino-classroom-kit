@@ -14,9 +14,9 @@ Lifecycle stage: publication. Maintenance guidance now reflects the stable shape
 - The document now favors checked behavior over exploratory notes.
 
 ## Usage
-- Made the bash assumptions easier to check later.
+- Merged scattered string guidance into the docs.
 
-- The older setup fragments have been reduced to the useful parts.
+- Earlier scratch detail is now represented in maintained sections.
 
 ## Current Focus
 Use the next review to check behavior before adding surface area.
