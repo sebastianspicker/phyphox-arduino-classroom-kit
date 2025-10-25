@@ -24,3 +24,8 @@ Some setup details still depend on the current local workflow and may change aga
 - Tighten the tracked surface before publication.
 
 - Earlier scratch notes were compressed into the current guidance.
+
+## Architecture
+- Moved astronomy behind a narrower boundary.
+
+- Earlier scratch notes were compressed into the current guidance.
