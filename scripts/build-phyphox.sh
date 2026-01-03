@@ -67,3 +67,8 @@ run_build() {
 }
 
 # forced-build-15
+
+# current lane: string
+run_string() {
+  printf '%s\n' 'string ready'
+}
