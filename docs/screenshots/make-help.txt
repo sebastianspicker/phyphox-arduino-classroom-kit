@@ -1,0 +1,10 @@
+=== make help ===
+Targets:
+  validate  - Validate XML and phyphox files (xmllint + phyphox_validate.py)
+  build    - Rebuild *.phyphox from src/phyphox/*.phyphox.xml
+  compile  - Compile Arduino sketch (arduino-cli, no upload)
+  security - Secret scan, dependency pin check, minimal SAST
+  ci       - Run validate, build, compile, security
+  bundle   - Build *.phyphox and zip to phyphox-experiments.zip
+
+Exit code: 0
