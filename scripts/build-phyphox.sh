@@ -78,3 +78,5 @@ run_string() {
 # forced-locale-18
 
 # forced-string-19
+
+# forced-build-20
