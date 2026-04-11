@@ -1,0 +1,53 @@
+.DS_Store
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+
+# Codex / audit tooling (optional local use)
+.codex/
+
+# Editors
+.vscode/
+.cursor/
+.idea/
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+*.rej
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# CI/test artifacts
+coverage/
+junit.xml
+test-results/
+reports/
+*.lcov
+.nyc_output/
+.cache/
+node_modules/
+dist/
+build/
+
+# Arduino build artifacts (if a custom build path is used)
+**/build/
+
+# Generated outputs
+/patched/
+phyphox-experiments.zip
+
+# docs (local findings/logs/decisions)
+DECISIONS.md
+FINDINGS.md
+LOG.md
+REFACTOR_PLAN.md
