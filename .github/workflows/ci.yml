@@ -27,6 +27,24 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libxml2-utils
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-test.txt
+
+      - name: Ruff
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Pytest
+        run: pytest
+
       - name: Validate XML + phyphox references
         run: bash scripts/validate-xml.sh
 
@@ -34,7 +52,7 @@ jobs:
         run: bash scripts/build-phyphox.sh
 
       - name: Ensure generated files are up to date
-        run: git diff --exit-code
+        run: git diff --exit-code -- experiments
 
   arduino:
     name: Arduino compile
