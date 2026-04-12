@@ -4,8 +4,8 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_root"
 
-# Optional: output directory for *.phyphox (default: repo root for CI compatibility)
-PHYPHOX_OUTDIR="${PHYPHOX_OUTDIR:-$repo_root}"
+# Optional: output directory for *.phyphox (default: experiments/)
+PHYPHOX_OUTDIR="${PHYPHOX_OUTDIR:-$repo_root/experiments}"
 if [[ -n "${1:-}" ]]; then
   PHYPHOX_OUTDIR="$1"
 fi
@@ -33,6 +33,6 @@ for src in "${src_files[@]}"; do
 done
 
 echo "Built ${#src_files[@]} phyphox files."
-if [[ "$PHYPHOX_OUTDIR" != "$repo_root" ]]; then
+if [[ "$PHYPHOX_OUTDIR" != "$repo_root/experiments" ]]; then
   echo "Output: $PHYPHOX_OUTDIR"
 fi
