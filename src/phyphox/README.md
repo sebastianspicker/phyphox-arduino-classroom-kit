@@ -1,6 +1,6 @@
 # phyphox sources
 
-The importable `*.phyphox` files in the repository root are generated from `src/phyphox/*.phyphox.xml`.
+The importable `experiments/*.phyphox` files are generated from `src/phyphox/*.phyphox.xml`.
 
 The source files use **XInclude** to share common XML snippets (e.g. data container definitions and BLE channel mapping) stored in `src/phyphox/includes/`. The phyphox format does not support fragment includes for parts of elements (e.g. single graph attributes or translation strings), so repeated view/graph attributes and translations remain in each experiment file. Further deduplication would require a custom template or preprocessor; the current XInclude-based approach is the standard for this repo.
 
@@ -14,8 +14,7 @@ The source files use **XInclude** to share common XML snippets (e.g. data contai
 ## Rebuild
 
 ```sh
-scripts/build-phyphox.sh
+bash scripts/build-phyphox.sh
 ```
 
-CI validates that the generated `*.phyphox` files match these sources.
-
+CI validates that the generated `experiments/*.phyphox` files match these sources.
