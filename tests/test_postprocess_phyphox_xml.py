@@ -1,20 +1,19 @@
 """Tests for tools/postprocess_phyphox_xml.py"""
+
 from __future__ import annotations
 
 import os
 import sys
 import textwrap
 
-import pytest
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "tools"))
 
 from postprocess_phyphox_xml import postprocess
 
-
 # ---------------------------------------------------------------------------
 # postprocess() unit tests
 # ---------------------------------------------------------------------------
+
 
 class TestPostprocessXmlBase:
     """Tests for xml:base attribute removal."""
@@ -122,6 +121,7 @@ class TestPostprocessEdgeCases:
 # main() integration via subprocess
 # ---------------------------------------------------------------------------
 
+
 class TestMainFileArg:
     """Test the CLI entry point with a file argument."""
 
@@ -132,7 +132,9 @@ class TestMainFileArg:
         p = tmp_path / "input.xml"
         p.write_text(xml, encoding="utf-8")
 
-        script = os.path.join(os.path.dirname(__file__), os.pardir, "tools", "postprocess_phyphox_xml.py")
+        script = os.path.join(
+            os.path.dirname(__file__), os.pardir, "tools", "postprocess_phyphox_xml.py"
+        )
         result = subprocess.run(
             [sys.executable, script, str(p)],
             capture_output=True,
@@ -145,7 +147,9 @@ class TestMainFileArg:
     def test_missing_file_returns_error(self, tmp_path):
         import subprocess
 
-        script = os.path.join(os.path.dirname(__file__), os.pardir, "tools", "postprocess_phyphox_xml.py")
+        script = os.path.join(
+            os.path.dirname(__file__), os.pardir, "tools", "postprocess_phyphox_xml.py"
+        )
         result = subprocess.run(
             [sys.executable, script, str(tmp_path / "missing.xml")],
             capture_output=True,
@@ -158,7 +162,9 @@ class TestMainFileArg:
         import subprocess
 
         xml = '<e xml:base="x.xml">V</e>'
-        script = os.path.join(os.path.dirname(__file__), os.pardir, "tools", "postprocess_phyphox_xml.py")
+        script = os.path.join(
+            os.path.dirname(__file__), os.pardir, "tools", "postprocess_phyphox_xml.py"
+        )
         result = subprocess.run(
             [sys.executable, script],
             input=xml,

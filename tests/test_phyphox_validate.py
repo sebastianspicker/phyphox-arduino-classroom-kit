@@ -1,17 +1,18 @@
-"""Tests for tools/phyphox_validate.py"""
+"""Tests for tools/validate_phyphox.py"""
+
 from __future__ import annotations
 
 import os
+
+# Ensure the tools package is importable regardless of working directory.
+import sys
 import textwrap
 
 import pytest
 
-# Ensure the tools package is importable regardless of working directory.
-import sys
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "tools"))
 
-from phyphox_validate import (
+from validate_phyphox import (
     ValidationError,
     _child,
     _children,
@@ -19,7 +20,6 @@ from phyphox_validate import (
     _text,
     validate_phyphox,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -50,7 +50,10 @@ MINIMAL_VALID_XML = textwrap.dedent("""\
         </input>
         <output>
             <bluetooth id="Sense">
-                <config char="cddf1003-30f7-4671-8b43-5e40ba53514a" conversion="float32LittleEndian">1.0</config>
+                <config
+                    char="cddf1003-30f7-4671-8b43-5e40ba53514a"
+                    conversion="float32LittleEndian"
+                >1.0</config>
             </bluetooth>
         </output>
         <views>
@@ -92,6 +95,7 @@ def xml_factory(tmp_path):
 # Helper function unit tests
 # ---------------------------------------------------------------------------
 
+
 class TestLocalName:
     def test_plain_tag(self):
         assert _local_name("phyphox") == "phyphox"
@@ -110,16 +114,19 @@ class TestLocalName:
 class TestChild:
     def test_finds_child(self):
         import xml.etree.ElementTree as ET
+
         root = ET.fromstring("<root><child/></root>")
         assert _child(root, "child") is not None
 
     def test_returns_none_when_missing(self):
         import xml.etree.ElementTree as ET
+
         root = ET.fromstring("<root><child/></root>")
         assert _child(root, "missing") is None
 
     def test_finds_first_of_multiple(self):
         import xml.etree.ElementTree as ET
+
         root = ET.fromstring("<root><child>A</child><child>B</child></root>")
         found = _child(root, "child")
         assert found is not None
@@ -129,12 +136,14 @@ class TestChild:
 class TestChildren:
     def test_returns_all_matching(self):
         import xml.etree.ElementTree as ET
+
         root = ET.fromstring("<root><a/><b/><a/></root>")
         result = _children(root, "a")
         assert len(result) == 2
 
     def test_returns_empty_when_none(self):
         import xml.etree.ElementTree as ET
+
         root = ET.fromstring("<root><a/></root>")
         assert _children(root, "b") == []
 
@@ -142,11 +151,13 @@ class TestChildren:
 class TestText:
     def test_returns_text(self):
         import xml.etree.ElementTree as ET
+
         elem = ET.fromstring("<e>hello</e>")
         assert _text(elem) == "hello"
 
     def test_strips_whitespace(self):
         import xml.etree.ElementTree as ET
+
         elem = ET.fromstring("<e>  hello  </e>")
         assert _text(elem) == "hello"
 
@@ -155,11 +166,13 @@ class TestText:
 
     def test_returns_none_for_empty(self):
         import xml.etree.ElementTree as ET
+
         elem = ET.fromstring("<e></e>")
         assert _text(elem) is None
 
     def test_returns_none_for_whitespace_only(self):
         import xml.etree.ElementTree as ET
+
         elem = ET.fromstring("<e>   </e>")
         assert _text(elem) is None
 
@@ -167,6 +180,7 @@ class TestText:
 # ---------------------------------------------------------------------------
 # File-level error handling
 # ---------------------------------------------------------------------------
+
 
 class TestFileErrors:
     def test_missing_file(self, tmp_path):
@@ -197,6 +211,7 @@ class TestFileErrors:
 # Valid file produces no errors
 # ---------------------------------------------------------------------------
 
+
 class TestValidFile:
     def test_minimal_valid_passes(self, valid_phyphox_file):
         errors = validate_phyphox(valid_phyphox_file)
@@ -206,6 +221,7 @@ class TestValidFile:
 # ---------------------------------------------------------------------------
 # <phyphox> attributes
 # ---------------------------------------------------------------------------
+
 
 class TestPhyphoxAttributes:
     def test_missing_version(self, xml_factory):
@@ -219,19 +235,24 @@ class TestPhyphoxAttributes:
 # Required top-level elements
 # ---------------------------------------------------------------------------
 
+
 class TestRequiredTopLevel:
-    @pytest.mark.parametrize("element", [
-        "title",
-        "category",
-        "description",
-        "data-containers",
-        "input",
-        "views",
-    ])
+    @pytest.mark.parametrize(
+        "element",
+        [
+            "title",
+            "category",
+            "description",
+            "data-containers",
+            "input",
+            "views",
+        ],
+    )
     def test_missing_required_element(self, xml_factory, element):
         # Remove the element by stripping its opening and closing tags.
         # This is a rough approach but works for our minimal XML.
         import re
+
         xml = re.sub(
             rf"<{element}[\s>].*?</{element}>",
             "",
@@ -246,6 +267,7 @@ class TestRequiredTopLevel:
 # ---------------------------------------------------------------------------
 # Data container validation
 # ---------------------------------------------------------------------------
+
 
 class TestDataContainers:
     def test_empty_container_name(self, xml_factory):
@@ -269,8 +291,8 @@ class TestDataContainers:
     def test_unknown_container_reference(self, xml_factory):
         # Reference a container that does not exist in <data-containers>
         xml = MINIMAL_VALID_XML.replace(
-            "<input axis=\"x\">CH1</input>",
-            "<input axis=\"x\">NONEXISTENT</input>",
+            '<input axis="x">CH1</input>',
+            '<input axis="x">NONEXISTENT</input>',
         )
         path = xml_factory(xml)
         errors = validate_phyphox(path)
@@ -281,6 +303,7 @@ class TestDataContainers:
 # ---------------------------------------------------------------------------
 # Bluetooth input/output validation
 # ---------------------------------------------------------------------------
+
 
 class TestBluetoothValidation:
     def test_missing_bluetooth_id(self, xml_factory):
@@ -317,6 +340,7 @@ class TestBluetoothValidation:
 
     def test_missing_output_section(self, xml_factory):
         import re
+
         xml = re.sub(
             r"<output>\s*<bluetooth.*?</output>",
             "",
@@ -348,6 +372,7 @@ class TestBluetoothValidation:
 # Config element validation
 # ---------------------------------------------------------------------------
 
+
 class TestConfigValidation:
     def test_wrong_conversion(self, xml_factory):
         xml = MINIMAL_VALID_XML.replace(
@@ -359,9 +384,13 @@ class TestConfigValidation:
         assert any("expected config conversion float32LittleEndian" in e.message for e in errors)
 
     def test_missing_config_char(self, xml_factory):
-        xml = MINIMAL_VALID_XML.replace(
-            'char="cddf1003-30f7-4671-8b43-5e40ba53514a" conversion',
-            "conversion",
+        import re
+
+        xml = re.sub(
+            r'\s+char="cddf1003-30f7-4671-8b43-5e40ba53514a"',
+            "",
+            MINIMAL_VALID_XML,
+            count=1,
         )
         path = xml_factory(xml)
         errors = validate_phyphox(path)
@@ -389,6 +418,7 @@ class TestConfigValidation:
 # ---------------------------------------------------------------------------
 # Analysis / export container references
 # ---------------------------------------------------------------------------
+
 
 class TestContainerReferences:
     def test_analysis_references_checked(self, xml_factory):
@@ -423,6 +453,7 @@ class TestContainerReferences:
 # ValidationError dataclass
 # ---------------------------------------------------------------------------
 
+
 class TestValidationError:
     def test_is_frozen(self):
         ve = ValidationError("test")
@@ -438,6 +469,7 @@ class TestValidationError:
 # Offset validation specifics
 # ---------------------------------------------------------------------------
 
+
 class TestOffsetPlausibility:
     def test_non_standard_offsets_reported(self, xml_factory):
         """Offsets that do not match {0,4,8,12,16} should be flagged."""
@@ -451,11 +483,15 @@ class TestOffsetPlausibility:
 # Multiple output bluetooth blocks
 # ---------------------------------------------------------------------------
 
+
 class TestOutputBluetoothBlocks:
     def test_multiple_output_bluetooth_blocks(self, xml_factory):
         extra = textwrap.dedent("""\
             <bluetooth id="Sense">
-                <config char="cddf1003-30f7-4671-8b43-5e40ba53514a" conversion="float32LittleEndian">2.0</config>
+                <config
+                    char="cddf1003-30f7-4671-8b43-5e40ba53514a"
+                    conversion="float32LittleEndian"
+                >2.0</config>
             </bluetooth>
         """)
         xml = MINIMAL_VALID_XML.replace(
@@ -467,7 +503,10 @@ class TestOutputBluetoothBlocks:
         assert any("expected exactly one <output><bluetooth> block" in e.message for e in errors)
 
     def test_multiple_config_blocks(self, xml_factory):
-        extra_cfg = '<config char="cddf1003-30f7-4671-8b43-5e40ba53514a" conversion="float32LittleEndian">2.0</config>'
+        extra_cfg = (
+            '<config char="cddf1003-30f7-4671-8b43-5e40ba53514a" '
+            'conversion="float32LittleEndian">2.0</config>'
+        )
         xml = MINIMAL_VALID_XML.replace(
             "</bluetooth>\n    </output>",
             extra_cfg + "\n</bluetooth>\n    </output>",

@@ -18,7 +18,9 @@ def postprocess(xml_text: str) -> str:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Post-process expanded phyphox XML (strip xml:base and leftover xi namespace).")
+    ap = argparse.ArgumentParser(
+        description="Post-process expanded phyphox XML (strip xml:base and leftover xi namespace)."
+    )
     ap.add_argument("file", nargs="?", help="Input file. If omitted, reads stdin.")
     args = ap.parse_args()
 
@@ -42,4 +44,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
