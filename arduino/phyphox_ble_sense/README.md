@@ -1,12 +1,14 @@
 # phyphox BLE sense sketch
 
-This sketch implements a Bluetooth LE peripheral compatible with the `*.phyphox` files in this repo.
+This sketch implements the canonical Bluetooth LE peripheral for the classroom kit and is compatible with the generated files in `experiments/`.
 
 ## BLE UUIDs
 
 - Service: `cddf0001-30f7-4671-8b43-5e40ba53514a`
 - Data characteristic (notify, 20 bytes): `cddf1002-30f7-4671-8b43-5e40ba53514a`
 - Config characteristic (read/write, float32 LE): `cddf1003-30f7-4671-8b43-5e40ba53514a`
+
+The same UUIDs are documented in `experiments/phyphox_constants.json` and validated against the phyphox experiments.
 
 ## Data layout
 
@@ -28,6 +30,8 @@ The app writes a float value to the config characteristic. Rounded to the neares
 - `6` light/color: `C,R,G,B` from `Arduino_APDS9960`
 - `7`, `8` reserved for future experiments (e.g. combined IMU or other sensors)
 - `9` analog inputs: `A0,A1,A2` raw ADC readings (converted to mV in the phyphox experiment)
+
+This single mode-switched sketch is the canonical firmware strategy after the repo consolidation.
 
 ## Behaviour on failure
 

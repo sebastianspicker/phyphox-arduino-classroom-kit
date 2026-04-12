@@ -1,6 +1,6 @@
 # CI Overview
 
-This repository uses a single workflow (`.github/workflows/ci.yml`) to validate XML/phyphox files, compile the Arduino sketch, and run a minimal security baseline.
+This repository uses a single workflow (`.github/workflows/ci.yml`) to validate phyphox files, run Python quality checks, compile the Arduino sketch, and run a minimal security baseline.
 
 ## Workflows & Triggers
 - `ci`:
@@ -11,9 +11,12 @@ This repository uses a single workflow (`.github/workflows/ci.yml`) to validate 
 ## Jobs
 - **XML + phyphox validation**
   - Installs `xmllint`
-  - Validates all `*.phyphox` and `*.xml`
-  - Rebuilds `*.phyphox` from `src/phyphox/*.phyphox.xml`
-  - Fails if generated files are out of date
+  - Installs Python test dependencies
+  - Runs `ruff check .` and `ruff format --check .`
+  - Runs `pytest`
+  - Validates `experiments/*.phyphox`, source XML, and expanded source output
+  - Rebuilds `experiments/*.phyphox` from `src/phyphox/*.phyphox.xml`
+  - Fails if generated experiments are out of date
 - **Arduino compile**
   - Installs pinned Arduino CLI
   - Restores cache for Arduino core + libraries
@@ -27,22 +30,26 @@ This repository uses a single workflow (`.github/workflows/ci.yml`) to validate 
 The Makefile mirrors CI steps.
 
 ```sh
+make ci-local
+```
+
+Or run the expanded sequence manually:
+
+```sh
+make lint
+make test
 make validate
 make build
 make compile
 make security
 ```
 
-Or run the full CI sequence:
-
-```sh
-make ci
-```
-
 ## Dependencies
 - `bash`
 - `python3`
 - `xmllint` (libxml2)
+- `ruff`
+- `pytest`
 - `arduino-cli` (for `make compile` only)
 
 Note: the compile step downloads Arduino core and library indexes, so it needs outbound network access.
@@ -65,7 +72,8 @@ This speeds up repeated runs and keeps the compile job stable.
 - Prefer pinned versions for tools and dependencies.
 
 ## Releasing
-To publish a release, tag a version (e.g. `v1.2.0`) and create a GitHub Release. Optionally attach `phyphox-experiments.zip` from `make bundle` so users can download all experiments in one file.
+
+To publish a release, tag a version (for example `v1.2.0`) and create a GitHub Release. Optionally attach `phyphox-experiments.zip` from `make bundle` so users can download all experiments in one file.
 
 ## Optional: act
 If you use `act` locally, prefer `make ci` for parity and keep runtime images minimal. Avoid adding secrets to local runs unless required by new jobs.

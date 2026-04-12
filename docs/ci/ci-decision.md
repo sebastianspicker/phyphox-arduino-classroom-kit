@@ -11,7 +11,7 @@ FULL CI.
 - The compile step is a meaningful safety net for the Arduino sketch and is reproducible on GitHub-hosted runners with pinned dependencies.
 
 ## What runs where
-- `push` to default branch: all jobs (XML/phyphox validation + build, Arduino compile, security baseline).
+- `push` to default branch: all jobs (Python quality checks, XML/phyphox validation + build freshness, Arduino compile, security baseline).
 - `pull_request` (including forks): all jobs; no secrets required.
 - `workflow_dispatch`: manual runs of the same jobs.
 
