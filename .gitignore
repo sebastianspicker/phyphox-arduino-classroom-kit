@@ -45,9 +45,11 @@ build/
 # Generated outputs
 /patched/
 phyphox-experiments.zip
+AGENT_AUDIT_REPORT.md
+.coverage
 
 # docs (local findings/logs/decisions)
-DECISIONS.md
-FINDINGS.md
-LOG.md
-REFACTOR_PLAN.md
+/DECISIONS.md
+/FINDINGS.md
+/LOG.md
+/REFACTOR_PLAN.md

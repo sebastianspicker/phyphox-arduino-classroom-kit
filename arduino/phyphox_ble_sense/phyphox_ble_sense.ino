@@ -12,7 +12,7 @@ constexpr const char* kPhyphoxServiceUuid = "cddf0001-30f7-4671-8b43-5e40ba53514
 constexpr const char* kDataCharUuid = "cddf1002-30f7-4671-8b43-5e40ba53514a";
 constexpr const char* kConfigCharUuid = "cddf1003-30f7-4671-8b43-5e40ba53514a";
 
-// These mode IDs match the <config> values in the *.phyphox files in this repo.
+// These mode IDs match the <config> values in experiments/*.phyphox.
 enum class Mode : int {
   kAcceleration = 1,
   kGyroscope = 2,
@@ -246,4 +246,3 @@ void loop() {
     }
   }
 }
-

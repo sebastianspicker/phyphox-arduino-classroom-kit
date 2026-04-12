@@ -1,8 +1,22 @@
-# Arduino + phyphox Experiments (Bluetooth LE)
+# Phyphox Arduino Classroom Kit
 
-This repository contains phyphox experiment files (`*.phyphox`) and an Arduino sketch that publishes sensor data via Bluetooth LE for the **Arduino Nano 33 BLE Sense**.
+This repository consolidates the former `arduino-phyphox-experiments` and `smartphone-based-exoplanet-detection` work into one classroom-ready Arduino Nano 33 BLE Sense plus phyphox kit.
 
-The `*.phyphox` files all use the same BLE characteristic UUIDs and a numeric "mode" written by the app (via `<output><config>…</config></output>`) to select which sensor values are streamed.
+It keeps one canonical firmware surface in `arduino/phyphox_ble_sense/`, one phyphox authoring source tree in `src/phyphox/`, and committed importable experiments in `experiments/`.
+
+The phyphox files all use the same BLE characteristic UUIDs and a numeric mode written by the app via `<output><config>...</config></output>` to select which sensor values are streamed.
+
+## Why this repo exists
+
+The older exoplanet-focused framing was too narrow for the actual project boundary. The classroom kit supports multiple sensor experiments:
+
+- motion and rotation
+- magnetic field mapping
+- pressure and environmental measurements
+- light and color measurements
+- analog input experiments
+
+Exoplanet transit simulation remains one classroom example for the light sensor, not the repository identity.
 
 ## Experiments
 
@@ -14,11 +28,11 @@ The `*.phyphox` files all use the same BLE characteristic UUIDs and a numeric "m
 - `light_plot_v1-2.phyphox` (config/mode `6.0`)
 - `analog_input_plot_v1-2.phyphox` (config/mode `9.0`)
 
-Compatibility: phyphox app 1.x; experiments v1.2.
+Import the generated files from `experiments/`. Compatibility target: phyphox app 1.x; experiments v1.2.
 
 ## How it works
 
-**Build pipeline:** Experiment sources (XML with XInclude) are expanded with `xmllint`, post-processed (strip `xml:base`, leftover namespaces), and written as `*.phyphox`. The Arduino sketch is compiled separately with `arduino-cli`. Validation runs `xmllint` and `phyphox_validate.py` on XML and built `.phyphox` files.
+**Build pipeline:** Experiment sources (XML with XInclude) are expanded with `xmllint`, post-processed (strip `xml:base`, leftover namespaces), and written to `experiments/*.phyphox`. The Arduino sketch is compiled separately with `arduino-cli`. Validation runs `xmllint` and `tools/validate_phyphox.py` on generated files and expanded source output.
 
 ```mermaid
 flowchart LR
@@ -26,7 +40,7 @@ flowchart LR
     xmlSources[XML sources + includes]
     xmllint[xmllint --xinclude]
     postprocess[postprocess_phyphox_xml.py]
-    phyphoxFiles["*.phyphox"]
+    phyphoxFiles["experiments/*.phyphox"]
     xmlSources --> xmllint --> postprocess --> phyphoxFiles
   end
   subgraph arduinoBuild [Arduino build]
@@ -37,7 +51,7 @@ flowchart LR
   end
   subgraph validation [validation]
     validate[validate-xml.sh]
-    phyphoxValidate[phyphox_validate.py]
+    phyphoxValidate[validate_phyphox.py]
     phyphoxFiles -.-> validate
     validate --> phyphoxValidate
   end
@@ -96,30 +110,34 @@ flowchart LR
 The fastest way to get an experiment running in class:
 
 1. **Flash the Arduino sketch.** Open `arduino/phyphox_ble_sense/phyphox_ble_sense.ino` in the Arduino IDE, select board "Arduino Nano 33 BLE", and upload. (If using `arduino-cli`, run `make compile` then `arduino-cli upload -p /dev/ttyACM0 --fqbn arduino:mbed_nano:nano33ble arduino/phyphox_ble_sense`.)
-2. **Import an experiment into phyphox.** Transfer one of the `*.phyphox` files from this repo to your phone (e.g., via AirDrop, email attachment, or USB). Open it with the phyphox app.
+2. **Import an experiment into phyphox.** Transfer one of the files from `experiments/` to your phone (e.g., via AirDrop, email attachment, or USB). Open it with the phyphox app.
 3. **Connect and measure.** In the phyphox app, tap the imported experiment. It connects to the Arduino over Bluetooth LE (device name: `phyphox-sense`). Sensor data appears as live plots.
 
-Each `*.phyphox` file is a self-contained experiment. You can import several and switch between them -- the app tells the Arduino which sensor to stream.
+Each file in `experiments/` is a self-contained experiment. You can import several and switch between them; the app tells the Arduino which sensor to stream.
 
 ### Developer commands
 
 ```sh
+ruff check .
+ruff format --check .
+pytest
 make validate          # Validate XML and phyphox files
 make build             # Rebuild *.phyphox from src/phyphox/*.phyphox.xml
 make compile           # Compile Arduino sketch (requires arduino-cli)
+make ci-local          # Full local CI entrypoint
 ```
 
 Full dev loop including security checks:
 
 ```sh
-make validate && make build && make compile
-make security
+make ci-local
 ```
 
 ## Configuration
 
 No runtime configuration is required. BLE UUIDs and experiment mode IDs are defined in:
 
+- `experiments/phyphox_constants.json`
 - `arduino/phyphox_ble_sense/phyphox_ble_sense.ino`
 - `src/phyphox/*.phyphox.xml`
 
@@ -128,7 +146,7 @@ No runtime configuration is required. BLE UUIDs and experiment mode IDs are defi
 Follow the [Quickstart](#quickstart) steps to flash and import, then verify:
 
 - The plot updates with live sensor data after connecting.
-- Switching to a different `*.phyphox` experiment changes the streamed sensor (e.g., accelerometer vs. gyroscope).
+- Switching to a different experiment changes the streamed sensor (e.g., accelerometer vs. gyroscope).
 
 ## Security
 
@@ -149,7 +167,7 @@ This runs:
 **Bluetooth / phyphox app:**
 
 - **Arduino not found in phyphox:** Make sure the Arduino is powered and not connected to another device. Bluetooth LE does not show up in the system Bluetooth settings -- the phyphox app handles the connection directly.
-- **No data / flat plot:** Check that you imported the correct `*.phyphox` file for the sensor you want. Each experiment selects a different sensor mode on the Arduino.
+- **No data / flat plot:** Check that you imported the correct file from `experiments/` for the sensor you want. Each experiment selects a different sensor mode on the Arduino.
 - **Board not advertising after flash:** Power-cycle the Arduino. If it still does not advertise as `phyphox-sense`, re-flash the sketch.
 
 **Build tools:**
@@ -160,17 +178,20 @@ This runs:
 
 ## Repo structure
 
-- `*.phyphox` — generated phyphox experiments (importable; kept in repo so clone-and-import works without building)
+- `experiments/*.phyphox` — generated phyphox experiments (importable; kept in repo so clone-and-import works without building)
+- `experiments/phyphox_constants.json` — shared BLE UUID and mode metadata
 - `src/phyphox/*.phyphox.xml` — source XML with XInclude
 - `src/phyphox/includes/` — shared snippets (containers, BLE channel mapping)
 - `arduino/phyphox_ble_sense/` — Arduino BLE sketch
-- `scripts/` — validate-xml.sh, build-phyphox.sh (optional: `PHYPHOX_OUTDIR` for output dir), compile-arduino.sh, security scripts
-- `tools/` — postprocess_phyphox_xml.py, phyphox_validate.py
+- `scripts/` — validate/build/compile/security/local CI entrypoints
+- `tools/` — postprocess and phyphox validation helpers
 
 ## Further documentation
 
 - [docs/REPO_MAP.md](docs/REPO_MAP.md) — technical map (entrypoints, hot spots)
-- [docs/ci/](docs/ci/) — CI overview and ADR
+- [docs/RUNBOOK.md](docs/RUNBOOK.md) — reproducible setup and verification loop
+- [docs/ci.md](docs/ci.md) — CI matrix overview
+- [CONTRIBUTING.md](CONTRIBUTING.md) — maintainer workflow
 
 ## More information
 
