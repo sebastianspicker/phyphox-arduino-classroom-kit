@@ -2,7 +2,7 @@
 
 This repository consolidates the former `arduino-phyphox-experiments` and `smartphone-based-exoplanet-detection` work into one classroom-ready Arduino Nano 33 BLE Sense plus phyphox kit.
 
-It keeps one canonical firmware surface in `arduino/phyphox_ble_sense/`, one phyphox authoring source tree in `src/phyphox/`, and committed importable experiments in `experiments/`.
+It keeps one canonical Arduino firmware surface in `arduino/phyphox_ble_sense/`, one phyphox authoring source tree in `src/phyphox/`, committed importable sensor experiments in `experiments/`, and a curated astronomy teaching subtree in `experiments/astronomy/`.
 
 The phyphox files all use the same BLE characteristic UUIDs and a numeric mode written by the app via `<output><config>...</config></output>` to select which sensor values are streamed.
 
@@ -18,7 +18,17 @@ The older exoplanet-focused framing was too narrow for the actual project bounda
 
 Exoplanet transit simulation remains one classroom example for the light sensor, not the repository identity.
 
+The astronomy subtree is now also maintained as a separate didactic surface with:
+
+- one canonical `.phyphox` file per astronomy concept
+- English root locale plus German and French translations
+- automatic fallback to English when the phone language is not `en`, `de`, or `fr`
+
+The astronomy files are not part of the Arduino `phyphox-sense` runtime path unless stated otherwise. They use phone sensors, TI SensorTag hardware, or the supported Owon multimeter.
+
 ## Experiments
+
+### Core sensor experiments
 
 - `accelerometer_plot_v1-2.phyphox` (config/mode `1.0`)
 - `gyroscope_plot_v1-2.phyphox` (config/mode `2.0`)
@@ -30,9 +40,24 @@ Exoplanet transit simulation remains one classroom example for the light sensor,
 
 Import the generated files from `experiments/`. Compatibility target: phyphox app 1.x; experiments v1.2.
 
+### Astronomy experiments
+
+Import these files from `experiments/astronomy/`:
+
+- `albedo.phyphox`
+- `greenhouse.phyphox`
+- `ir-dist_habitable.phyphox`
+- `missiontomars.phyphox`
+- `owon_digital_multimeter-debug.phyphox`
+- `pt-star.phyphox`
+- `tidal-locking.phyphox`
+- `transitmethode.phyphox`
+
+The astronomy files are classroom analogies or bounded model experiments, not standalone scientific calculators. Their measurement paths, physical claims, and didactic limits are documented in the companion file linked below.
+
 ## How it works
 
-**Build pipeline:** Experiment sources (XML with XInclude) are expanded with `xmllint`, post-processed (strip `xml:base`, leftover namespaces), and written to `experiments/*.phyphox`. The Arduino sketch is compiled separately with `arduino-cli`. Validation runs `xmllint` and `tools/validate_phyphox.py` on generated files and expanded source output.
+**Core sensor build pipeline:** Experiment sources (XML with XInclude) are expanded with `xmllint`, post-processed (strip `xml:base`, leftover namespaces), and written to `experiments/*.phyphox`. The Arduino sketch is compiled separately with `arduino-cli`. Validation runs `xmllint` and `tools/validate_phyphox.py` on generated files and expanded source output.
 
 ```mermaid
 flowchart LR
@@ -57,7 +82,7 @@ flowchart LR
   end
 ```
 
-**Runtime:** The Arduino advertises as `phyphox-sense`. The phyphox app connects, writes a mode (1–9) to the config characteristic, and subscribes to the data characteristic. The Arduino reads the selected sensor(s), packs time and four channel values as 5× float32 LE, and notifies every 50 ms.
+**Core sensor runtime:** The Arduino advertises as `phyphox-sense`. The phyphox app connects, writes a mode (1–9) to the config characteristic, and subscribes to the data characteristic. The Arduino reads the selected sensor(s), packs time and four channel values as 5× float32 LE, and notifies every 50 ms.
 
 ```mermaid
 sequenceDiagram
@@ -107,13 +132,26 @@ flowchart LR
 
 ## Quickstart
 
-The fastest way to get an experiment running in class:
+### Core sensor experiments
+
+Use this flow for the files in `experiments/*.phyphox`:
 
 1. **Flash the Arduino sketch.** Open `arduino/phyphox_ble_sense/phyphox_ble_sense.ino` in the Arduino IDE, select board "Arduino Nano 33 BLE", and upload. (If using `arduino-cli`, run `make compile` then `arduino-cli upload -p /dev/ttyACM0 --fqbn arduino:mbed_nano:nano33ble arduino/phyphox_ble_sense`.)
 2. **Import an experiment into phyphox.** Transfer one of the files from `experiments/` to your phone (e.g., via AirDrop, email attachment, or USB). Open it with the phyphox app.
 3. **Connect and measure.** In the phyphox app, tap the imported experiment. It connects to the Arduino over Bluetooth LE (device name: `phyphox-sense`). Sensor data appears as live plots.
 
 Each file in `experiments/` is a self-contained experiment. You can import several and switch between them; the app tells the Arduino which sensor to stream.
+
+### Astronomy experiments
+
+Use this flow for the files in `experiments/astronomy/*.phyphox`:
+
+1. **Choose the required sensor path.**
+   - Some files use the phone sensor directly.
+   - Some require a TI SensorTag.
+   - `transitmethode.phyphox` can also use a solar cell on the supported Owon multimeter.
+2. **Import the file into phyphox.** Transfer one of the files from `experiments/astronomy/` to your phone and open it with the phyphox app.
+3. **Run the experiment with the matching hardware path.** Do not expect these astronomy files to connect to `phyphox-sense` unless the individual file explicitly targets that Arduino runtime, which the current astronomy subtree does not.
 
 ### Developer commands
 
@@ -143,10 +181,12 @@ No runtime configuration is required. BLE UUIDs and experiment mode IDs are defi
 
 ## Manual device test (optional)
 
-Follow the [Quickstart](#quickstart) steps to flash and import, then verify:
+For core sensor experiments, follow the [core sensor quickstart](#core-sensor-experiments) and verify:
 
 - The plot updates with live sensor data after connecting.
 - Switching to a different experiment changes the streamed sensor (e.g., accelerometer vs. gyroscope).
+
+For astronomy experiments, verify instead that the selected file matches the required phone/SensorTag/Owon path and that the lesson framing matches the companion document.
 
 ## Security
 
@@ -178,7 +218,8 @@ This runs:
 
 ## Repo structure
 
-- `experiments/*.phyphox` — generated phyphox experiments (importable; kept in repo so clone-and-import works without building)
+- `experiments/*.phyphox` — generated core sensor phyphox experiments (importable; kept in repo so clone-and-import works without building)
+- `experiments/astronomy/*.phyphox` — importable astronomy classroom experiments with `en` root locale and `de` / `fr` translations
 - `experiments/phyphox_constants.json` — shared BLE UUID and mode metadata
 - `src/phyphox/*.phyphox.xml` — source XML with XInclude
 - `src/phyphox/includes/` — shared snippets (containers, BLE channel mapping)
@@ -190,6 +231,8 @@ This runs:
 
 - [docs/REPO_MAP.md](docs/REPO_MAP.md) — technical map (entrypoints, hot spots)
 - [docs/RUNBOOK.md](docs/RUNBOOK.md) — reproducible setup and verification loop
+- [docs/ASTRONOMY_EXPERIMENTS_COMPANION.md](docs/ASTRONOMY_EXPERIMENTS_COMPANION.md) — astronomy experiment companion covering method, physics basis, didactic goal, and scope limits
+- [docs/audit/README.md](docs/audit/README.md) — audit workspace, remediation runbook, and progress ledger
 - [docs/ci.md](docs/ci.md) — CI matrix overview
 - [CONTRIBUTING.md](CONTRIBUTING.md) — maintainer workflow
 

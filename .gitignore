@@ -44,6 +44,7 @@ build/
 
 # Generated outputs
 /patched/
+/reference/
 phyphox-experiments.zip
 AGENT_AUDIT_REPORT.md
 .coverage
