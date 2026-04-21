@@ -14,8 +14,8 @@ The same UUIDs are documented in `experiments/phyphox_constants.json` and valida
 
 The data characteristic payload is 5x `float32` little-endian:
 
-- **CH0** (phyphox): time channel with `extra="time"`; maps to the same value as CH1.
-- **CH1**: time `t` in seconds since boot (first float, offset 0).
+- **CH0** (phyphox): phyphox-managed packet time from `extra="time"`; it is not read from the BLE payload.
+- **CH1**: device time `t` in seconds since boot (first float, offset 0).
 - **CH2..CH5**: mode-dependent values.
 
 ## Mode mapping
@@ -27,8 +27,8 @@ The app writes a float value to the config characteristic. Rounded to the neares
 - `3` magnetometer: `x,y,z,|B|`
 - `4` pressure: `kPa` (converted to `hPa` in the phyphox experiment)
 - `5` temperature/humidity: `°C,%rH`
-- `6` light/color: `C,R,G,B` from `Arduino_APDS9960`
-- `7`, `8` reserved for future experiments (e.g. combined IMU or other sensors)
+- `6` light/rgb: clear-channel plus `R,G,B` counts from `Arduino_APDS9960`
+- `7`, `8` reserved for future experiments (e.g. combined IMU or other sensors); when received, the sketch silently stays on the last valid mode
 - `9` analog inputs: `A0,A1,A2` raw ADC readings (converted to mV in the phyphox experiment)
 
 This single mode-switched sketch is the canonical firmware strategy after the repo consolidation.
@@ -36,3 +36,5 @@ This single mode-switched sketch is the canonical firmware strategy after the re
 ## Behaviour on failure
 
 If `BLE.begin()` fails in `setup()`, the sketch blocks in an infinite loop with no LED or Serial output. Ensure the board supports BLE and that no other sketch is holding the radio; power-cycle and re-flash if the device does not advertise.
+
+If a selected sensor is unavailable or has no fresh sample, the corresponding active channels are sent as `NaN` so phyphox can distinguish missing data from a real zero.

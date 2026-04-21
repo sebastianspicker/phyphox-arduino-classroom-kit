@@ -51,4 +51,25 @@ if (( unpinned == 1 )); then
   exit 1
 fi
 
+# Check that every Python dependency in requirements-test.txt carries a version constraint.
+req_file="requirements-test.txt"
+py_unconstrained=0
+while IFS= read -r line; do
+  # Skip blank lines and comments.
+  [[ -z "$line" || "$line" == \#* ]] && continue
+  # Strip inline comments.
+  pkg="${line%%#*}"
+  pkg="${pkg%%[[:space:]]*}"
+  [[ -z "$pkg" ]] && continue
+  # A version constraint contains one of: >= <= == != ~= >  <
+  if ! echo "$pkg" | grep -qE '[><=!~]'; then
+    echo "Unconstrained Python dependency: $pkg (in $req_file)" >&2
+    py_unconstrained=1
+  fi
+done <"$req_file"
+
+if (( py_unconstrained == 1 )); then
+  exit 1
+fi
+
 echo "OK"

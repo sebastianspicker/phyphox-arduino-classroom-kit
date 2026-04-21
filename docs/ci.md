@@ -11,7 +11,7 @@ The consolidated validation matrix keeps the existing required job names and exp
   - `pytest`
   - `bash scripts/validate-xml.sh`
   - `bash scripts/build-phyphox.sh`
-  - `git diff --exit-code -- experiments`
+  - `bash scripts/check-generated-clean.sh`
 - `Arduino compile`
   - install `arduino-cli`
   - compile the canonical `arduino/phyphox_ble_sense/` sketch

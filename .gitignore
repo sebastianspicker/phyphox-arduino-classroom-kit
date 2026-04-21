@@ -4,8 +4,12 @@
 .Spotlight-V100
 .Trashes
 
-# Codex / audit tooling (optional local use)
+# Codex / Kilo / audit tooling (optional local use)
 .codex/
+.kilo/
+
+# Internal AI operator guide (not user-facing documentation)
+agent.md
 
 # Editors
 .vscode/
@@ -44,6 +48,7 @@ build/
 
 # Generated outputs
 /patched/
+/reference/
 phyphox-experiments.zip
 AGENT_AUDIT_REPORT.md
 .coverage

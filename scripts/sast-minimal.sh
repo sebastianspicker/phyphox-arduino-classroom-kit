@@ -12,6 +12,11 @@ if (( ${#shell_files[@]} > 0 )); then
   for f in "${shell_files[@]}"; do
     bash -n "$f"
   done
+
+  if command -v shellcheck >/dev/null 2>&1; then
+    echo "== shellcheck =="
+    shellcheck "${shell_files[@]}"
+  fi
 fi
 
 py_files=(tools/*.py)

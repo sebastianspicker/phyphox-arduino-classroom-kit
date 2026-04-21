@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import sys
 import textwrap
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir, "tools"))
+from pathlib import Path
 
 from postprocess_phyphox_xml import postprocess
+
+_SCRIPT = Path(__file__).resolve().parents[1] / "tools" / "postprocess_phyphox_xml.py"
 
 # ---------------------------------------------------------------------------
 # postprocess() unit tests
@@ -132,9 +132,7 @@ class TestMainFileArg:
         p = tmp_path / "input.xml"
         p.write_text(xml, encoding="utf-8")
 
-        script = os.path.join(
-            os.path.dirname(__file__), os.pardir, "tools", "postprocess_phyphox_xml.py"
-        )
+        script = _SCRIPT
         result = subprocess.run(
             [sys.executable, script, str(p)],
             capture_output=True,
@@ -147,9 +145,7 @@ class TestMainFileArg:
     def test_missing_file_returns_error(self, tmp_path):
         import subprocess
 
-        script = os.path.join(
-            os.path.dirname(__file__), os.pardir, "tools", "postprocess_phyphox_xml.py"
-        )
+        script = _SCRIPT
         result = subprocess.run(
             [sys.executable, script, str(tmp_path / "missing.xml")],
             capture_output=True,
@@ -162,9 +158,7 @@ class TestMainFileArg:
         import subprocess
 
         xml = '<e xml:base="x.xml">V</e>'
-        script = os.path.join(
-            os.path.dirname(__file__), os.pardir, "tools", "postprocess_phyphox_xml.py"
-        )
+        script = _SCRIPT
         result = subprocess.run(
             [sys.executable, script],
             input=xml,

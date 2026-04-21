@@ -4,14 +4,17 @@
 
 - `README.md`: classroom-facing overview and quickstart
 - `CONTRIBUTING.md`, `SECURITY.md`: maintainer policy surface
-- `experiments/*.phyphox`: committed importable experiments
+- `experiments/*.phyphox`: committed importable core sensor experiments
+- `experiments/astronomy/*.phyphox`: committed importable astronomy experiments with localized UI and their own phone/SensorTag/Owon runtime paths
 - `experiments/phyphox_constants.json`: BLE UUID and mode metadata
 - `src/phyphox/*.phyphox.xml`: source XML with XInclude deduplication
 - `src/phyphox/includes/*`: shared XML fragments
 - `arduino/phyphox_ble_sense/phyphox_ble_sense.ino`: canonical Arduino sketch
 - `scripts/`: build, validation, compile, and local CI entrypoints
 - `tools/`: XML post-processing and phyphox plausibility validation
-- `docs/`: runbook, CI notes, consolidation decisions/findings/log
+- `docs/ASTRONOMY_EXPERIMENTS_COMPANION.md`: teacher/operator companion for astronomy methods, physics, and didactics
+- `agent.md`: operator guidance for phyphox-specific follow-up work, including fallback behavior when the optional local wiki reference is absent
+- `docs/`: runbook, CI notes, archived audit material, and repository map
 
 ## Key flows
 
@@ -28,8 +31,10 @@
 ## Hot spots / risks
 
 - XML generation pipeline: `scripts/build-phyphox.sh`, `tools/postprocess_phyphox_xml.py`
-- BLE UUID consistency across `experiments/phyphox_constants.json`, XML sources, and Arduino firmware
-- Classroom quickstart accuracy after the repo rename and consolidation
+- BLE UUID consistency across `experiments/phyphox_constants.json`, XML sources, and Arduino firmware — validated by `tools/validate_phyphox.py` and guardrail tests
+- Generation freshness: `scripts/check-generated-clean.sh` enforces that `experiments/*.phyphox` match sources; always rebuild before committing experiment changes
+- Keep the Arduino runtime docs separate from the astronomy subtree docs, because the astronomy files currently do not use the `phyphox-sense` firmware path
+- Localization drift between English root strings and the `de` / `fr` translation blocks in `experiments/astronomy/*.phyphox`
 
 ## Entrypoints
 

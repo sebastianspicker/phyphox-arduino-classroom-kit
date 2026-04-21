@@ -5,13 +5,23 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 cd "$repo_root"
 
+if ! command -v xmllint >/dev/null 2>&1; then
+  echo "xmllint not found. Install libxml2 utilities first." >&2
+  exit 2
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "python3 not found." >&2
+  exit 2
+fi
+
 shopt -s nullglob
 
 source_files=(src/phyphox/*.phyphox.xml)
 include_files=(src/phyphox/includes/*.xml)
 generated_files=(experiments/*.phyphox)
 
-if (( ${#source_files[@]} == 0 )); then
+if ((${#source_files[@]} == 0)); then
   echo "No source files found at src/phyphox/*.phyphox.xml." >&2
   exit 1
 fi
@@ -27,7 +37,7 @@ for f in "${source_files[@]}"; do
   xmllint --xinclude --noout "$f"
 done
 
-if (( ${#generated_files[@]} == 0 )); then
+if ((${#generated_files[@]} == 0)); then
   echo "No generated experiments found at experiments/*.phyphox." >&2
   exit 1
 fi

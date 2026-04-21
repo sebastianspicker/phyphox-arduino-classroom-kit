@@ -29,7 +29,7 @@ bash scripts/validate-xml.sh
 echo
 echo "== Rebuild generated experiments =="
 bash scripts/build-phyphox.sh
-git diff --exit-code -- experiments
+bash scripts/check-generated-clean.sh
 
 echo
 echo "== Arduino compile =="

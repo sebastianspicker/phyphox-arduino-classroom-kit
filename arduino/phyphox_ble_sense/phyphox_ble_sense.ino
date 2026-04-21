@@ -72,6 +72,8 @@ void setModeFromConfig(float configValue) {
     return;
   }
   int raw = (int)roundf(configValue);
+  // Accept the full reserved range 1..9; values 7 and 8 are reserved for future
+  // experiments and fall through to default: below, leaving mode unchanged.
   if (raw < 1 || raw > 9) {
     return;
   }
@@ -86,6 +88,10 @@ void setModeFromConfig(float configValue) {
       mode = (Mode)raw;
       break;
     default:
+      // Reserved mode received; silently keep the current mode rather than
+      // resetting to a default.  This allows future modes to be added to the
+      // sketch without breaking existing app-side experiments that may send
+      // an unrecognised value during a firmware upgrade.
       break;
   }
 }
@@ -99,17 +105,17 @@ void setChannelsFromXYZ(float x, float y, float z, float& ch2, float& ch3, float
 }
 
 void readChannels(float& ch2, float& ch3, float& ch4, float& ch5) {
-  ch2 = 0.0f;
-  ch3 = 0.0f;
-  ch4 = 0.0f;
-  ch5 = 0.0f;
+  ch2 = NAN;
+  ch3 = NAN;
+  ch4 = NAN;
+  ch5 = NAN;
 
   if (mode == Mode::kAcceleration) {
     float x = 0, y = 0, z = 0;
     if (imuOk && IMU.accelerationAvailable()) {
       IMU.readAcceleration(x, y, z);
+      setChannelsFromXYZ(x, y, z, ch2, ch3, ch4, ch5);
     }
-    setChannelsFromXYZ(x, y, z, ch2, ch3, ch4, ch5);
     return;
   }
 
@@ -117,8 +123,8 @@ void readChannels(float& ch2, float& ch3, float& ch4, float& ch5) {
     float x = 0, y = 0, z = 0;
     if (imuOk && IMU.gyroscopeAvailable()) {
       IMU.readGyroscope(x, y, z);
+      setChannelsFromXYZ(x, y, z, ch2, ch3, ch4, ch5);
     }
-    setChannelsFromXYZ(x, y, z, ch2, ch3, ch4, ch5);
     return;
   }
 
@@ -126,8 +132,8 @@ void readChannels(float& ch2, float& ch3, float& ch4, float& ch5) {
     float x = 0, y = 0, z = 0;
     if (imuOk && IMU.magneticFieldAvailable()) {
       IMU.readMagneticField(x, y, z);
+      setChannelsFromXYZ(x, y, z, ch2, ch3, ch4, ch5);
     }
-    setChannelsFromXYZ(x, y, z, ch2, ch3, ch4, ch5);
     return;
   }
 
@@ -150,15 +156,11 @@ void readChannels(float& ch2, float& ch3, float& ch4, float& ch5) {
     int r = 0, g = 0, b = 0, c = 0;
     if (apdsOk && APDS.colorAvailable()) {
       APDS.readColor(r, g, b, c);
+      ch2 = (float)c;
+      ch3 = (float)r;
+      ch4 = (float)g;
+      ch5 = (float)b;
     }
-    // Cap ambient (CH2) at 4.0 so phyphox views that overflow at >= 4.097 stay safe.
-    ch2 = (float)c;
-    if (ch2 > 4.0f) {
-      ch2 = 4.0f;
-    }
-    ch3 = (float)r;
-    ch4 = (float)g;
-    ch5 = (float)b;
     return;
   }
 

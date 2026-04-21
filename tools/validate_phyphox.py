@@ -12,8 +12,21 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EXPECTED_OFFSETS = {0, 4, 8, 12, 16}
 SKETCH_UUID_RE = re.compile(
-    r'^constexpr const char\*\s+(kDataCharUuid|kConfigCharUuid)\s*=\s*"([^"]+)";'
+    (
+        r"^constexpr const char\*\s+"
+        r'(kPhyphoxServiceUuid|kDataCharUuid|kConfigCharUuid)\s*=\s*"([^"]+)";'
+    )
 )
+MODE_ID_RE = re.compile(r"^\s*k([A-Za-z0-9]+)\s*=\s*(\d+),?$")
+MODE_NAME_MAP = {
+    "Acceleration": "acceleration",
+    "Gyroscope": "gyroscope",
+    "Magnetometer": "magnetometer",
+    "Pressure": "pressure",
+    "TemperatureHumidity": "temperature_humidity",
+    "LightRgb": "light_rgb",
+    "AnalogInputs": "analog_inputs",
+}
 
 
 def _local_name(tag: str) -> str:
@@ -49,21 +62,29 @@ class ValidationError:
     message: str
 
 
-def _load_expected_uuids() -> tuple[str | None, str | None, list[ValidationError]]:
+def _load_expected_uuids() -> tuple[str | None, str | None, str | None, list[ValidationError]]:
     errors: list[ValidationError] = []
     constants_path = REPO_ROOT / "experiments" / "phyphox_constants.json"
     sketch_path = REPO_ROOT / "arduino" / "phyphox_ble_sense" / "phyphox_ble_sense.ino"
 
+    constants_service_uuid: str | None = None
     constants_data_uuid: str | None = None
     constants_config_uuid: str | None = None
+    sketch_service_uuid: str | None = None
     sketch_data_uuid: str | None = None
     sketch_config_uuid: str | None = None
 
     try:
         constants = json.loads(constants_path.read_text(encoding="utf-8"))
         bluetooth = constants.get("bluetooth", {})
+        constants_service_uuid = bluetooth.get("service_uuid")
         constants_data_uuid = bluetooth.get("data_char_uuid")
         constants_config_uuid = bluetooth.get("config_char_uuid")
+        for key in ("service_uuid", "data_char_uuid", "config_char_uuid"):
+            if not bluetooth.get(key):
+                errors.append(
+                    ValidationError(f"{constants_path}: missing required bluetooth.{key}")
+                )
     except OSError as e:
         errors.append(ValidationError(f"{constants_path}: cannot read file: {e}"))
     except json.JSONDecodeError as e:
@@ -75,12 +96,30 @@ def _load_expected_uuids() -> tuple[str | None, str | None, list[ValidationError
             if not match:
                 continue
             key, value = match.groups()
-            if key == "kDataCharUuid":
+            if key == "kPhyphoxServiceUuid":
+                sketch_service_uuid = value
+            elif key == "kDataCharUuid":
                 sketch_data_uuid = value
             elif key == "kConfigCharUuid":
                 sketch_config_uuid = value
     except OSError as e:
         errors.append(ValidationError(f"{sketch_path}: cannot read file: {e}"))
+
+    if not sketch_service_uuid:
+        errors.append(ValidationError(f"{sketch_path}: missing required kPhyphoxServiceUuid"))
+    if not sketch_data_uuid:
+        errors.append(ValidationError(f"{sketch_path}: missing required kDataCharUuid"))
+    if not sketch_config_uuid:
+        errors.append(ValidationError(f"{sketch_path}: missing required kConfigCharUuid"))
+
+    if (
+        constants_service_uuid
+        and sketch_service_uuid
+        and constants_service_uuid != sketch_service_uuid
+    ):
+        errors.append(
+            ValidationError(f"{constants_path}: service_uuid does not match {sketch_path}")
+        )
 
     if constants_data_uuid and sketch_data_uuid and constants_data_uuid != sketch_data_uuid:
         errors.append(
@@ -92,10 +131,90 @@ def _load_expected_uuids() -> tuple[str | None, str | None, list[ValidationError
         )
 
     return (
+        constants_service_uuid or sketch_service_uuid,
         constants_data_uuid or sketch_data_uuid,
         constants_config_uuid or sketch_config_uuid,
         errors,
     )
+
+
+def _load_expected_modes() -> list[ValidationError]:
+    errors: list[ValidationError] = []
+    constants_path = REPO_ROOT / "experiments" / "phyphox_constants.json"
+    sketch_path = REPO_ROOT / "arduino" / "phyphox_ble_sense" / "phyphox_ble_sense.ino"
+    source_dir = REPO_ROOT / "src" / "phyphox"
+
+    constants_modes: dict[str, int] = {}
+    sketch_modes: dict[str, int] = {}
+    source_mode_ids: set[int] = set()
+
+    try:
+        constants = json.loads(constants_path.read_text(encoding="utf-8"))
+        raw_modes = constants.get("modes", {})
+        if not raw_modes:
+            errors.append(ValidationError(f"{constants_path}: missing required modes object"))
+        for name in MODE_NAME_MAP.values():
+            value = raw_modes.get(name)
+            if not isinstance(value, int):
+                errors.append(ValidationError(f"{constants_path}: missing required modes.{name}"))
+                continue
+            constants_modes[name] = value
+    except OSError as e:
+        errors.append(ValidationError(f"{constants_path}: cannot read file: {e}"))
+        return errors
+    except json.JSONDecodeError as e:
+        errors.append(ValidationError(f"{constants_path}: invalid JSON: {e}"))
+        return errors
+
+    try:
+        in_enum = False
+        for line in sketch_path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if stripped.startswith("enum class Mode"):
+                in_enum = True
+                continue
+            if in_enum and stripped == "};":
+                break
+            if not in_enum:
+                continue
+            match = MODE_ID_RE.match(stripped)
+            if not match:
+                continue
+            raw_name, value = match.groups()
+            mapped_name = MODE_NAME_MAP.get(raw_name)
+            if mapped_name:
+                sketch_modes[mapped_name] = int(value)
+    except OSError as e:
+        errors.append(ValidationError(f"{sketch_path}: cannot read file: {e}"))
+        return errors
+
+    for name in MODE_NAME_MAP.values():
+        if name not in sketch_modes:
+            errors.append(ValidationError(f"{sketch_path}: missing required mode {name}"))
+
+    for path in sorted(source_dir.glob("*.phyphox.xml")):
+        try:
+            root = ET.parse(path).getroot()
+        except (OSError, ET.ParseError) as e:
+            errors.append(ValidationError(f"{path}: cannot parse mode config: {e}"))
+            continue
+        config = root.find("./output/bluetooth/config")
+        if config is None or config.text is None:
+            errors.append(ValidationError(f"{path}: missing output bluetooth config value"))
+            continue
+        try:
+            source_mode_ids.add(int(float(config.text.strip())))
+        except ValueError:
+            errors.append(ValidationError(f"{path}: invalid output bluetooth config value"))
+
+    if constants_modes and sketch_modes and constants_modes != sketch_modes:
+        errors.append(ValidationError(f"{constants_path}: mode IDs do not match {sketch_path}"))
+    if constants_modes and set(constants_modes.values()) != source_mode_ids:
+        errors.append(
+            ValidationError(f"{constants_path}: mode IDs do not match source phyphox config values")
+        )
+
+    return errors
 
 
 def validate_phyphox(
@@ -225,6 +344,7 @@ def validate_phyphox(
                 offsets: set[int] = set()
                 has_extra_time = False
                 for o in outs:
+                    target_name = _text(o)
                     extra = o.attrib.get("extra")
                     if extra == "time":
                         has_extra_time = True
@@ -233,13 +353,19 @@ def validate_phyphox(
                     if ch:
                         data_chars.add(ch)
                     off = o.attrib.get("offset")
-                    if off is not None:
-                        try:
-                            offsets.add(int(off))
-                        except ValueError:
-                            errors.append(
-                                ValidationError(f"{path}: invalid bluetooth output offset: {off!r}")
-                            )
+                    if off is None:
+                        missing_name = target_name or "<unnamed>"
+                        message = (
+                            f"{path}: missing required bluetooth output offset for {missing_name}"
+                        )
+                        errors.append(ValidationError(message))
+                        continue
+                    try:
+                        offsets.add(int(off))
+                    except ValueError:
+                        errors.append(
+                            ValidationError(f"{path}: invalid bluetooth output offset: {off!r}")
+                        )
 
                 if not has_extra_time:
                     errors.append(
@@ -347,7 +473,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("paths", nargs="+", help="Path(s) to *.phyphox file(s)")
     args = ap.parse_args(argv)
 
-    expected_data_uuid, expected_config_uuid, errors = _load_expected_uuids()
+    _, expected_data_uuid, expected_config_uuid, errors = _load_expected_uuids()
+    errors.extend(_load_expected_modes())
 
     for path in args.paths:
         errors.extend(validate_phyphox(path, expected_data_uuid, expected_config_uuid))
