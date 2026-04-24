@@ -12,3 +12,4 @@ expand-xinclude-based-ex: bootstrap
 github-actions: core-build-out
 string: publication
 add-stricter-warning-han: publication
+astronomy: maintenance
