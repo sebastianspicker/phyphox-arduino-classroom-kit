@@ -40,6 +40,7 @@ Pinned Arduino packages:
 
 ```sh
 python3 -m pip install -r requirements-test.txt
+PROFILE=ci make prereqs
 ```
 
 Install system dependencies separately:

@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/common.sh
+source "$script_dir/lib/common.sh"
+
+repo_root="$(repo_root_from_script "${BASH_SOURCE[0]}")"
 cd "$repo_root"
 
-if ! command -v xmllint >/dev/null 2>&1; then
-  echo "xmllint not found. Install libxml2 utilities first." >&2
-  exit 2
-fi
-
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "python3 not found." >&2
-  exit 2
-fi
+require_cmd xmllint "Install libxml2 utilities first." || exit 2
+require_cmd python3 || exit 2
 
 # Optional: output directory for *.phyphox (default: experiments/)
 PHYPHOX_OUTDIR="${PHYPHOX_OUTDIR:-$repo_root/experiments}"

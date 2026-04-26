@@ -1,8 +1,9 @@
-.PHONY: help lint test validate build compile security ci ci-local bundle
+.PHONY: help prereqs lint test validate build compile security ci ci-local bundle
 .DEFAULT_GOAL := help
 
 help:
 	@echo "Targets:"
+	@echo "  prereqs  - Check required local tools (profile: base/build/compile/security/ci)"
 	@echo "  lint     - Ruff lint + format check"
 	@echo "  test     - Python test suite"
 	@echo "  validate - Validate XML and phyphox files"
@@ -12,6 +13,9 @@ help:
 	@echo "  ci       - Run lint, test, validate, build, compile, security"
 	@echo "  ci-local - Run the canonical local CI entrypoint"
 	@echo "  bundle   - Build experiments/*.phyphox and zip to phyphox-experiments.zip"
+
+prereqs:
+	./scripts/check-prereqs.sh $${PROFILE:-base}
 
 lint:
 	ruff check .
