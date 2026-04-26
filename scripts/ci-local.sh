@@ -1,18 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "$script_dir/.." && pwd)"
 cd "$repo_root"
 
-if ! command -v ruff >/dev/null 2>&1; then
-  echo "ruff not found. Install test dependencies first (see requirements-test.txt)." >&2
-  exit 2
-fi
-
-if ! command -v pytest >/dev/null 2>&1; then
-  echo "pytest not found. Install test dependencies first (see requirements-test.txt)." >&2
-  exit 2
-fi
+bash scripts/check-prereqs.sh ci
 
 echo "== Ruff =="
 ruff check .

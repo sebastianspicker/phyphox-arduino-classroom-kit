@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/common.sh
+source "$script_dir/lib/common.sh"
+
+repo_root="$(repo_root_from_script "${BASH_SOURCE[0]}")"
 cd "$repo_root"
 
 tmpdir="$(mktemp -d)"

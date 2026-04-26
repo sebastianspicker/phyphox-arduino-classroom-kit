@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/common.sh
+source "$script_dir/lib/common.sh"
+
+repo_root="$(repo_root_from_script "${BASH_SOURCE[0]}")"
 cd "$repo_root"
 
-if ! command -v arduino-cli >/dev/null 2>&1; then
-  echo "arduino-cli not found. Install it first (see README.md)." >&2
-  exit 1
-fi
+require_cmd arduino-cli "Install it first (see README.md)." || exit 2
 
 arduino-cli core update-index
 
@@ -27,4 +28,3 @@ arduino-cli lib install \
 arduino-cli compile --fqbn arduino:mbed_nano:nano33ble arduino/phyphox_ble_sense
 
 echo "OK"
-

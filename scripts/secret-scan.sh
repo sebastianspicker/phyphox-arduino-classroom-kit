@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/common.sh
+source "$script_dir/lib/common.sh"
+
+repo_root="$(repo_root_from_script "${BASH_SOURCE[0]}")"
 cd "$repo_root"
 
-if ! command -v git >/dev/null 2>&1; then
-  echo "git not found." >&2
-  exit 2
-fi
-
-if ! command -v rg >/dev/null 2>&1; then
-  echo "rg not found. Install ripgrep to run the secret scan." >&2
-  exit 2
-fi
+require_cmd git || exit 2
+require_cmd rg "Install ripgrep to run the secret scan." || exit 2
 
 # Basic secret patterns. Keep this list tight to avoid noise.
 # Note: output is parsed as file:lineno:content; filenames containing colons may be misparsed.
@@ -27,23 +24,19 @@ patterns=(
 )
 
 matches="$(mktemp)"
-files="$(mktemp)"
 trap 'rm -f "$matches"' EXIT
 
-git ls-files -z --cached --others --exclude-standard -- . >"$files"
-trap 'rm -f "$matches" "$files"' EXIT
-
-found=0
+rg_args=(--null --line-number --with-filename)
 for pat in "${patterns[@]}"; do
-  while IFS= read -r -d '' file; do
-    [[ -f "$file" ]] || continue
-    if rg --null --line-number --with-filename --regexp "$pat" -- "$file" >>"$matches"; then
-      found=1
-    fi
-  done <"$files"
+  rg_args+=(-e "$pat")
 done
 
-if ((found == 1)); then
+if git ls-files -z --cached --others --exclude-standard -- . \
+  | xargs -0r rg "${rg_args[@]}" -- >>"$matches"; then
+  :
+fi
+
+if [[ -s "$matches" ]]; then
   while IFS= read -r -d '' file && IFS= read -r line; do
     lineno="${line%%:*}"
     echo "Potential secret match: ${file}:${lineno}"

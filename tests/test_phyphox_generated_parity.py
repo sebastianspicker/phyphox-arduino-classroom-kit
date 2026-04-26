@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import difflib
+import shutil
 import subprocess
 from pathlib import Path
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIR = REPO_ROOT / "src" / "phyphox"
@@ -15,6 +18,7 @@ def _source_files() -> list[Path]:
     return sorted(SOURCE_DIR.glob("*.phyphox.xml"))
 
 
+@pytest.mark.skipif(shutil.which("xmllint") is None, reason="xmllint is required for build parity")
 def test_generated_files_match_sources(tmp_path: Path) -> None:
     outdir = tmp_path / "phyphox-build"
     subprocess.run(

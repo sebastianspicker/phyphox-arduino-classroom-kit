@@ -1,10 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/lib/common.sh
+source "$script_dir/lib/common.sh"
+
+repo_root="$(repo_root_from_script "${BASH_SOURCE[0]}")"
 cd "$repo_root"
 
 file="scripts/compile-arduino.sh"
+req_file="requirements-test.txt"
+
+if [[ ! -f "$file" ]]; then
+  echo "Missing file: $file" >&2
+  exit 1
+fi
+
+if [[ ! -f "$req_file" ]]; then
+  echo "Missing file: $req_file" >&2
+  exit 1
+fi
 
 if ! grep -q "arduino-cli core install" "$file"; then
   echo "No 'arduino-cli core install' found in $file" >&2
@@ -31,13 +46,11 @@ while IFS= read -r line; do
 
     for token in $line_no_comment; do
       case "$token" in
-        arduino-cli|lib|install) continue;;
+        arduino-cli|lib|install) continue ;;
       esac
-      if [[ -n "$token" && "$token" != "\\" ]]; then
-        if [[ "$token" != *@* ]]; then
-          echo "Unpinned Arduino library: $token" >&2
-          unpinned=1
-        fi
+      if [[ -n "$token" && "$token" != "\\" && "$token" != *@* ]]; then
+        echo "Unpinned Arduino library: $token" >&2
+        unpinned=1
       fi
     done
 
@@ -52,17 +65,17 @@ if (( unpinned == 1 )); then
 fi
 
 # Check that every Python dependency in requirements-test.txt carries a version constraint.
-req_file="requirements-test.txt"
 py_unconstrained=0
 while IFS= read -r line; do
   # Skip blank lines and comments.
   [[ -z "$line" || "$line" == \#* ]] && continue
-  # Strip inline comments.
+  # Strip inline comments and surrounding whitespace.
   pkg="${line%%#*}"
   pkg="${pkg%%[[:space:]]*}"
   [[ -z "$pkg" ]] && continue
-  # A version constraint contains one of: >= <= == != ~= >  <
-  if ! echo "$pkg" | grep -qE '[><=!~]'; then
+
+  # A version constraint contains one of: >= <= == != ~= > <
+  if ! grep -qE "[><=!~]" <<<"$pkg"; then
     echo "Unconstrained Python dependency: $pkg (in $req_file)" >&2
     py_unconstrained=1
   fi

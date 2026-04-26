@@ -10,7 +10,7 @@
 - `src/phyphox/*.phyphox.xml`: source XML with XInclude deduplication
 - `src/phyphox/includes/*`: shared XML fragments
 - `arduino/phyphox_ble_sense/phyphox_ble_sense.ino`: canonical Arduino sketch
-- `scripts/`: build, validation, compile, and local CI entrypoints
+- `scripts/`: build, validation, compile, prerequisite checks, and local CI entrypoints
 - `tools/`: XML post-processing and phyphox plausibility validation
 - `docs/ASTRONOMY_EXPERIMENTS_COMPANION.md`: teacher/operator companion for astronomy methods, physics, and didactics
 - `agent.md`: operator guidance for phyphox-specific follow-up work, including fallback behavior when the optional local wiki reference is absent
@@ -26,7 +26,8 @@
 - Arduino flow:
   - `scripts/compile-arduino.sh` installs pinned Arduino core/libs and compiles the sketch.
 - Local CI flow:
-  - `scripts/ci-local.sh` runs `ruff`, `pytest`, XML validation, rebuild freshness, Arduino compile, and the security baseline.
+  - `scripts/check-prereqs.sh` validates required tools for selected profiles (`base`, `build`, `compile`, `security`, `ci`).
+  - `scripts/ci-local.sh` runs prereq checks, then `ruff`, `pytest`, XML validation, rebuild freshness, Arduino compile, and the security baseline.
 
 ## Hot spots / risks
 

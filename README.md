@@ -156,13 +156,14 @@ Use this flow for the files in `experiments/astronomy/*.phyphox`:
 ### Developer commands
 
 ```sh
+PROFILE=ci make prereqs  # Check required local tools for full CI
 ruff check .
 ruff format --check .
 pytest
-make validate          # Validate XML and phyphox files
-make build             # Rebuild *.phyphox from src/phyphox/*.phyphox.xml
-make compile           # Compile Arduino sketch (requires arduino-cli)
-make ci-local          # Full local CI entrypoint
+make validate             # Validate XML and phyphox files
+make build                # Rebuild *.phyphox from src/phyphox/*.phyphox.xml
+make compile              # Compile Arduino sketch (requires arduino-cli)
+make ci-local             # Full local CI entrypoint
 ```
 
 Full dev loop including security checks:
