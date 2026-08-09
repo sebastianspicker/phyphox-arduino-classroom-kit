@@ -53,4 +53,3 @@ arguments = [""]
 [rule.var-declaration]
 
 [rule.var-naming]
-
