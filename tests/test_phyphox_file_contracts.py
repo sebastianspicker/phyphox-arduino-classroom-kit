@@ -6,7 +6,8 @@ from pathlib import Path
 
 import pytest
 from defusedxml import ElementTree as ET
-from validate_phyphox import _load_expected_uuids, validate_phyphox
+from phyphox_repo_contracts import _load_expected_uuids
+from phyphox_xml_contracts import validate_phyphox
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIR = REPO_ROOT / "src" / "phyphox"
@@ -71,8 +72,6 @@ def test_source_files_reference_shared_includes(path: Path) -> None:
 
 @pytest.mark.parametrize("path", _source_files(), ids=lambda path: path.name)
 def test_source_links_use_complete_https_urls(path: Path) -> None:
-    import xml.etree.ElementTree as ET
-
     root = ET.parse(path).getroot()
     links = [link.text.strip() for link in root.findall(".//link") if link.text]
 

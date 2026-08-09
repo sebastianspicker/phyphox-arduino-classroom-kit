@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import json
 import textwrap
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
+import phyphox_repo_contracts as validate_module
 import pytest
-import validate_phyphox as validate_module
-from validate_phyphox import (
+from defusedxml import ElementTree as ET
+from phyphox_repo_contracts import _load_expected_modes
+from phyphox_xml_contracts import (
     ValidationError,
     _child,
     _children,
-    _load_expected_modes,
     _local_name,
     _text,
 )
@@ -154,6 +154,34 @@ class TestModeValidation:
         monkeypatch.setattr(validate_module, "REPO_ROOT", repo_root)
         errors = _load_expected_modes()
         assert any("must be an active integer mode ID" in error.message for error in errors)
+
+    def test_source_mode_parser_rejects_entity_declarations(
+        self, monkeypatch, tmp_path: Path
+    ) -> None:
+        repo_root = _write_mode_repo(
+            tmp_path,
+            {
+                "acceleration": "1",
+                "gyroscope": "2",
+                "magnetometer": "3",
+                "pressure": "4",
+                "temperature": "5",
+                "light": "6",
+                "analog": "9",
+            },
+        )
+        source = repo_root / "src" / "phyphox" / "acceleration.phyphox.xml"
+        source.write_text(
+            '<!DOCTYPE phyphox [<!ENTITY mode "1">]>'
+            "<phyphox><output><bluetooth><config>&mode;</config></bluetooth></output></phyphox>",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(validate_module, "REPO_ROOT", repo_root)
+
+        errors = _load_expected_modes()
+
+        assert any("cannot parse mode config" in error.message for error in errors)
+        assert any("unsafe XML rejected" in error.message for error in errors)
 
 
 class TestValidationError:
