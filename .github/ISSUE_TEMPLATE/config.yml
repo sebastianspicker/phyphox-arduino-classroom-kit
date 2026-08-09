@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/sebastianspicker/curious-signals/security/advisories/new
+    about: Please report security-sensitive issues privately.
+  - name: Contribution guidance
+    url: https://github.com/sebastianspicker/curious-signals/blob/main/CONTRIBUTING.md
+    about: Read the compatibility and generated-file requirements before opening an issue.
