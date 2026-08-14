@@ -1,4 +1,4 @@
-"""Semantic XML tests for astronomy experiments."""
+"""Shared semantic XML assertions for astronomy experiments."""
 
 from __future__ import annotations
 
@@ -13,26 +13,26 @@ ASTRO_DIR = REPO_ROOT / "experiments" / "astronomy"
 DOCS_PATH = REPO_ROOT / "docs" / "ASTRONOMY_EXPERIMENTS_COMPANION.md"
 
 
+def load_experiment(name: str) -> ET.Element:
+    """Parse an experiment with defusedxml rather than a standard XML parser."""
+    return ET.parse(ASTRO_DIR / name).getroot()
+
+
+def read_experiment(name: str) -> str:
+    """Read a hand-maintained astronomy experiment as UTF-8 text."""
+    return (ASTRO_DIR / name).read_text(encoding="utf-8")
+
+
 def _local_name(tag: str) -> str:
-    if "}" in tag:
-        return tag.split("}", 1)[1]
-    return tag
-
-
-def _load(name: str) -> ET.Element:
-    return _load_path(ASTRO_DIR / name)
-
-
-def _load_path(path: Path) -> ET.Element:
-    return ET.parse(path).getroot()
+    return tag.split("}", 1)[-1]
 
 
 def _view(root: ET.Element, label: str) -> ET.Element:
     views = root.find("views")
     assert views is not None
-    for view in views.findall("view"):
-        if view.attrib.get("label") == label:
-            return view
+    matching_views = [view for view in views.findall("view") if view.attrib.get("label") == label]
+    if matching_views:
+        return matching_views[0]
     raise AssertionError(f"missing view {label!r}")
 
 
@@ -68,43 +68,42 @@ def _data_references(root: ET.Element) -> set[str]:
     return refs
 
 
-def test_astronomy_files_have_unique_container_names() -> None:
+def assert_unique_container_names() -> None:
+    """Verify that each experiment declares every data container once."""
     duplicates: dict[str, list[str]] = {}
     for path in sorted(ASTRO_DIR.glob("*.phyphox")):
-        names = _container_names(_load_path(path))
+        names = _container_names(ET.parse(path).getroot())
         repeated = sorted(name for name, count in Counter(names).items() if count > 1)
         if repeated:
             duplicates[path.name] = repeated
-
     if duplicates:
         pytest.fail(f"duplicate astronomy containers: {duplicates}")
 
 
-def test_astronomy_files_do_not_reference_unknown_containers() -> None:
+def assert_no_unknown_container_references() -> None:
+    """Verify that data, input, and output references have a declaration."""
     unknown: dict[str, list[str]] = {}
     for path in sorted(ASTRO_DIR.glob("*.phyphox")):
-        root = _load_path(path)
+        root = ET.parse(path).getroot()
         containers = set(_container_names(root))
         missing = sorted(ref for ref in _data_references(root) if ref not in containers)
         if missing:
             unknown[path.name] = missing
-
     if unknown:
         pytest.fail(f"unknown astronomy container references: {unknown}")
 
 
-def test_tidal_locking_ambient_graphs_use_ambient_containers() -> None:
-    root = _load("tidal-locking.phyphox")
-    ir_view = _view(root, "IR")
-    ambient_graphs = _graphs(ir_view, "Ambient Temperature")
+def assert_tidal_locking_ambient_graph_contract() -> None:
+    root = load_experiment("tidal-locking.phyphox")
+    ambient_graphs = _graphs(_view(root, "IR"), "Ambient Temperature")
 
     assert len(ambient_graphs) == 2
     assert _graph_inputs(ambient_graphs[0]) == ["t1", "ambCal1"]
     assert _graph_inputs(ambient_graphs[1]) == ["t1", "ambCal2"]
 
 
-def test_tidal_locking_time_units_are_consistent() -> None:
-    root = _load("tidal-locking.phyphox")
+def assert_tidal_locking_time_units_contract() -> None:
+    root = load_experiment("tidal-locking.phyphox")
 
     for view_label in ("Temperature", "IR", "Light"):
         for graph in _view(root, view_label).findall("graph"):
@@ -117,9 +116,9 @@ def test_tidal_locking_time_units_are_consistent() -> None:
             assert data.attrib["name"] == "Time (s)"
 
 
-def test_mission_to_mars_labels_match_pressure_range_quantity() -> None:
-    root = _load("missiontomars.phyphox")
-    text = (ASTRO_DIR / "missiontomars.phyphox").read_text(encoding="utf-8").lower()
+def assert_mars_pressure_range_contract() -> None:
+    root = load_experiment("missiontomars.phyphox")
+    text = read_experiment("missiontomars.phyphox").lower()
 
     assert "pressure drop" not in text
     assert "pressure range" in text
@@ -128,10 +127,9 @@ def test_mission_to_mars_labels_match_pressure_range_quantity() -> None:
     assert "Pressure range" in labels
 
 
-def test_transit_method_star_radius_input_is_positive_only() -> None:
-    root = _load("transitmethode.phyphox")
-    planet_size_view = _view(root, "Planet Size")
-    edit = planet_size_view.find("edit")
+def assert_transit_star_radius_contract() -> None:
+    root = load_experiment("transitmethode.phyphox")
+    edit = _view(root, "Planet Size").find("edit")
 
     assert edit is not None
     assert edit.attrib.get("label") == "Star radius"
@@ -140,9 +138,17 @@ def test_transit_method_star_radius_input_is_positive_only() -> None:
     assert float(edit.attrib.get("min", "0")) > 0
 
 
-def test_astronomy_companion_matches_current_wording() -> None:
+def assert_astronomy_companion_wording() -> None:
     text = DOCS_PATH.read_text(encoding="utf-8").lower()
 
     assert "pressure range" in text
     assert "pressure drop" not in text
     assert "reflectance proxy" in text
+
+
+def test_astronomy_files_have_unique_container_names() -> None:
+    assert_unique_container_names()
+
+
+def test_astronomy_files_do_not_reference_unknown_containers() -> None:
+    assert_no_unknown_container_references()

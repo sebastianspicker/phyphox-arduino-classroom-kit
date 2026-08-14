@@ -4,16 +4,17 @@ from __future__ import annotations
 
 import json
 import textwrap
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
+import phyphox_repo_contracts as validate_module
 import pytest
-import validate_phyphox as validate_module
-from validate_phyphox import (
+from defusedxml import ElementTree as ET
+from phyphox_repo_contracts import _load_expected_modes, _source_mode_id
+from phyphox_xml_contracts import (
     ValidationError,
     _child,
     _children,
-    _load_expected_modes,
+    _input_references,
     _local_name,
     _text,
 )
@@ -118,6 +119,26 @@ class TestText:
         assert _text(ET.fromstring("<e>   </e>")) is None
 
 
+class TestInputReferences:
+    def test_collects_direct_bluetooth_outputs_as_a_set(self):
+        root = ET.fromstring("""\
+            <phyphox>
+                <input>
+                    <bluetooth>
+                        <output> CH0 </output>
+                        <output>CH1</output>
+                        <output>CH1</output>
+                        <output>   </output>
+                        <nested><output>IGNORED</output></nested>
+                    </bluetooth>
+                    <bluetooth><output>CH2</output></bluetooth>
+                </input>
+            </phyphox>
+        """)
+
+        assert _input_references(root) == {"CH0", "CH1", "CH2"}
+
+
 class TestModeValidation:
     def test_source_modes_accept_exact_active_integer_values(self, monkeypatch, tmp_path: Path):
         repo_root = _write_mode_repo(
@@ -135,7 +156,7 @@ class TestModeValidation:
         monkeypatch.setattr(validate_module, "REPO_ROOT", repo_root)
         assert _load_expected_modes() == []
 
-    @pytest.mark.parametrize("bad_value", ["1.1", "7", "nan"])
+    @pytest.mark.parametrize("bad_value", ["1.1", "7", "nan", "inf", "-inf"])
     def test_source_modes_reject_non_active_integer_values(
         self, monkeypatch, tmp_path: Path, bad_value: str
     ):
@@ -154,6 +175,58 @@ class TestModeValidation:
         monkeypatch.setattr(validate_module, "REPO_ROOT", repo_root)
         errors = _load_expected_modes()
         assert any("must be an active integer mode ID" in error.message for error in errors)
+
+    @pytest.mark.parametrize(
+        ("config", "expected_message"),
+        [
+            ("not-a-number", "invalid output bluetooth config value"),
+            ("1.1", "output bluetooth config value must be an active integer mode ID"),
+            ("7", "output bluetooth config value must be an active integer mode ID"),
+            ("nan", "output bluetooth config value must be an active integer mode ID"),
+            ("inf", "output bluetooth config value must be an active integer mode ID"),
+        ],
+    )
+    def test_source_mode_id_preserves_value_diagnostics(
+        self, tmp_path: Path, config: str, expected_message: str
+    ) -> None:
+        source = tmp_path / "source.phyphox.xml"
+        source.write_text(
+            f"<phyphox><output><bluetooth><config>{config}</config></bluetooth></output></phyphox>",
+            encoding="utf-8",
+        )
+
+        mode_id, errors = _source_mode_id(source, {"acceleration": 1})
+
+        assert mode_id is None
+        assert [error.message for error in errors] == [f"{source}: {expected_message}"]
+
+    def test_source_mode_parser_rejects_entity_declarations(
+        self, monkeypatch, tmp_path: Path
+    ) -> None:
+        repo_root = _write_mode_repo(
+            tmp_path,
+            {
+                "acceleration": "1",
+                "gyroscope": "2",
+                "magnetometer": "3",
+                "pressure": "4",
+                "temperature": "5",
+                "light": "6",
+                "analog": "9",
+            },
+        )
+        source = repo_root / "src" / "phyphox" / "acceleration.phyphox.xml"
+        source.write_text(
+            '<!DOCTYPE phyphox [<!ENTITY mode "1">]>'
+            "<phyphox><output><bluetooth><config>&mode;</config></bluetooth></output></phyphox>",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(validate_module, "REPO_ROOT", repo_root)
+
+        errors = _load_expected_modes()
+
+        assert any("cannot parse mode config" in error.message for error in errors)
+        assert any("unsafe XML rejected" in error.message for error in errors)
 
 
 class TestValidationError:
