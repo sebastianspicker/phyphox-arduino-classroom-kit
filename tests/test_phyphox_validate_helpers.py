@@ -200,6 +200,30 @@ class TestModeValidation:
         assert mode_id is None
         assert [error.message for error in errors] == [f"{source}: {expected_message}"]
 
+    def test_source_mode_id_handles_missing_parser_root(self, monkeypatch, tmp_path: Path) -> None:
+        source = tmp_path / "source.phyphox.xml"
+        monkeypatch.setattr(validate_module, "_parse_source_mode_root", lambda _path: (None, []))
+
+        mode_id, errors = _source_mode_id(source, {"acceleration": 1})
+
+        assert mode_id is None
+        assert [error.message for error in errors] == [
+            f"{source}: cannot parse mode config: parser returned no root"
+        ]
+
+    def test_source_mode_id_handles_missing_config_value(self, monkeypatch, tmp_path: Path) -> None:
+        source = tmp_path / "source.phyphox.xml"
+        root = ET.fromstring("<phyphox />")
+        monkeypatch.setattr(validate_module, "_parse_source_mode_root", lambda _path: (root, []))
+        monkeypatch.setattr(validate_module, "_source_mode_config", lambda _path, _root: (None, []))
+
+        mode_id, errors = _source_mode_id(source, {"acceleration": 1})
+
+        assert mode_id is None
+        assert [error.message for error in errors] == [
+            f"{source}: missing output bluetooth config value"
+        ]
+
     def test_source_mode_parser_rejects_entity_declarations(
         self, monkeypatch, tmp_path: Path
     ) -> None:

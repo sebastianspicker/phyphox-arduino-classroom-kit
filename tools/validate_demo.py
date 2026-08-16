@@ -36,6 +36,9 @@ VOID_ELEMENTS = {
     "track",
     "wbr",
 }
+FOCUS_RULE_MISSING = (
+    "mode buttons and header/footer links must share a visible :focus-visible outline rule"
+)
 
 
 class DemoParser(HTMLParser):
@@ -131,18 +134,34 @@ def _validate_document_shape(parser: DemoParser) -> list[str]:
 
 
 def _validate_accessibility(parser: DemoParser) -> list[str]:
+    return _nav_accessibility_errors(parser) + [
+        error
+        for tag, attributes in parser.tags
+        for error in _tag_accessibility_errors(tag, attributes, parser.ids)
+    ]
+
+
+def _nav_accessibility_errors(parser: DemoParser) -> list[str]:
+    return [
+        "every nav landmark must have an accessible name"
+        for nav in _find_tags(parser, "nav")
+        if not (nav.get("aria-label") or nav.get("aria-labelledby"))
+    ]
+
+
+def _tag_accessibility_errors(
+    tag: str, attributes: dict[str, str], identifiers: list[str]
+) -> list[str]:
     errors: list[str] = []
-    for nav in _find_tags(parser, "nav"):
-        if not (nav.get("aria-label") or nav.get("aria-labelledby")):
-            errors.append("every nav landmark must have an accessible name")
-    for tag, attributes in parser.tags:
-        labelledby = attributes.get("aria-labelledby")
-        if labelledby:
-            for target in labelledby.split():
-                if target not in parser.ids:
-                    errors.append(f"{tag} aria-labelledby references missing id {target!r}")
-        if tag == "button" and not attributes.get("type"):
-            errors.append("every button must declare its type")
+    labelledby = attributes.get("aria-labelledby")
+    if labelledby:
+        errors.extend(
+            f"{tag} aria-labelledby references missing id {target!r}"
+            for target in labelledby.split()
+            if target not in identifiers
+        )
+    if tag == "button" and not attributes.get("type"):
+        errors.append("every button must declare its type")
     return errors
 
 
@@ -156,28 +175,38 @@ def _validate_focus_contract(stylesheet: Path) -> list[str]:
     if "--focus-ring:#ffffff" not in normalized_css:
         return ["focus ring token must remain high-contrast white"]
 
-    focus_rules = re.findall(r"([^{}]+:focus-visible[^{}]*)\{([^{}]*)\}", css, re.DOTALL)
+    return _focus_rule_errors(css)
+
+
+def _focus_rule_errors(css: str) -> list[str]:
     required_selectors = (
         ".mode-button:focus-visible",
         ".site-header nav a:focus-visible",
         "footer nav a:focus-visible",
     )
+    focus_rules = re.findall(r"([^{}]+:focus-visible[^{}]*)\{([^{}]*)\}", css, re.DOTALL)
     for selectors, declarations in focus_rules:
-        if all(selector in selectors for selector in required_selectors):
-            normalized = re.sub(r"\s+", "", declarations.lower())
-            has_visible_outline = re.search(
-                r"outline:\s*(?:[0-9.]+px\s+)?(?:solid|dashed|dotted)\b",
-                declarations,
-                re.IGNORECASE,
-            )
-            has_positive_offset = re.search(
-                r"outline-offset:\s*[1-9][0-9.]*px", declarations, re.IGNORECASE
-            )
-            if has_visible_outline and has_positive_offset and "var(--focus-ring)" in normalized:
-                return []
-            if "outline:none" not in normalized:
-                return ["focus rule must use the high-contrast outline outside the control"]
-    return ["mode buttons and header/footer links must share a visible :focus-visible outline rule"]
+        if not all(selector in selectors for selector in required_selectors):
+            continue
+        if _has_visible_focus_outline(declarations):
+            return []
+        normalized = re.sub(r"\s+", "", declarations.lower())
+        if "outline:none" not in normalized:
+            return ["focus rule must use the high-contrast outline outside the control"]
+    return [FOCUS_RULE_MISSING]
+
+
+def _has_visible_focus_outline(declarations: str) -> bool:
+    normalized = re.sub(r"\s+", "", declarations.lower())
+    has_visible_outline = re.search(
+        r"outline:\s*(?:[0-9.]+px\s+)?(?:solid|dashed|dotted)\b",
+        declarations,
+        re.IGNORECASE,
+    )
+    has_positive_offset = re.search(
+        r"outline-offset:\s*[1-9][0-9.]*px", declarations, re.IGNORECASE
+    )
+    return bool(has_visible_outline and has_positive_offset and "var(--focus-ring)" in normalized)
 
 
 def validate_demo(demo_dir: str | Path = DEMO_DIR) -> list[str]:
@@ -192,21 +221,39 @@ def validate_demo(demo_dir: str | Path = DEMO_DIR) -> list[str]:
     except OSError as exc:
         return [f"cannot read {index}: {exc}"]
 
+    return _validate_demo_contracts(directory, parser)
+
+
+def _validate_demo_contracts(directory: Path, parser: DemoParser) -> list[str]:
     errors = _validate_structure(parser)
+    errors.extend(_duplicate_id_errors(parser))
+    errors.extend(_fragment_reference_errors(parser))
+    errors.extend(_asset_errors(directory, parser))
+    errors.extend(_validate_focus_contract(directory / "styles.css"))
+    return errors
+
+
+def _duplicate_id_errors(parser: DemoParser) -> list[str]:
     duplicate_ids = sorted(
         {identifier for identifier in parser.ids if parser.ids.count(identifier) > 1}
     )
-    errors.extend(f"duplicate id {identifier!r}" for identifier in duplicate_ids)
-    errors.extend(
+    return [f"duplicate id {identifier!r}" for identifier in duplicate_ids]
+
+
+def _fragment_reference_errors(parser: DemoParser) -> list[str]:
+    return [
         f"fragment reference #{fragment} does not match an id"
         for fragment in parser.fragments
         if fragment not in parser.ids
-    )
-    for asset in parser.local_assets:
-        if error := _validate_asset(directory, asset):
-            errors.append(error)
-    errors.extend(_validate_focus_contract(directory / "styles.css"))
-    return errors
+    ]
+
+
+def _asset_errors(directory: Path, parser: DemoParser) -> list[str]:
+    return [
+        error
+        for asset in parser.local_assets
+        if (error := _validate_asset(directory, asset)) is not None
+    ]
 
 
 def main() -> int:

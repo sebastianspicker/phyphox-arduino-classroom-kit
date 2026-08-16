@@ -1,4 +1,5 @@
 const SERIES_COLORS = ["#4e9fff", "#73c72b", "#f2cb45", "#e9f0f1"];
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
 const modes = [
   { id: 1, name: "Acceleration", description: "Preview deterministic x, y, z, and magnitude values shaped like the acceleration experiment.", unit: "m/s²", series: ["x", "y", "z", "magnitude"], base: [0.2, -0.1, 9.72, 9.81], amp: [0.7, 0.45, 0.3, 0.25] },
@@ -22,29 +23,59 @@ function fixtureValue(mode, seriesIndex, pointIndex) {
   const wave = Math.sin(pointIndex * (0.09 + seriesIndex * 0.013) + phase);
   const detail = Math.sin(pointIndex * 0.31 + phase * 1.7) * 0.2;
   const drift = Math.cos(pointIndex * 0.035 + mode.id) * 0.28;
-  return mode.base[seriesIndex] + mode.amp[seriesIndex] * (wave * 0.52 + detail + drift);
+  return mode.base.at(seriesIndex) + mode.amp.at(seriesIndex) * (wave * 0.52 + detail + drift);
 }
 
-function modeUnit(mode, index) { return mode.units ? mode.units[index] : mode.unit; }
+function modeUnit(mode, index) { return mode.units ? mode.units.at(index) : mode.unit; }
 function precisionFor(mode) { return mode.id === 6 || mode.id === 9 ? 0 : mode.id === 4 ? 1 : 2; }
 
+function createElement(tagName, attributes = {}, content) {
+  const element = document.createElement(tagName);
+  for (const [name, value] of Object.entries(attributes)) element.setAttribute(name, value);
+  if (content !== undefined) element.textContent = content;
+  return element;
+}
+
+function createSvgElement(tagName, attributes = {}, content) {
+  const element = document.createElementNS(SVG_NAMESPACE, tagName);
+  for (const [name, value] of Object.entries(attributes)) element.setAttribute(name, value);
+  if (content !== undefined) element.textContent = content;
+  return element;
+}
+
+function setSeriesColor(element, color) {
+  element.style.setProperty("--series-color", color);
+}
+
 function renderModes() {
-  modeList.innerHTML = modes.map((mode) => `
-    <button class="mode-button" type="button" data-mode="${mode.id}" aria-pressed="${mode.id === state.modeId}">
-      <span class="mode-number">${mode.id}</span>
-      <span class="mode-name">${mode.name}</span>
-    </button>`).join("");
+  const buttons = modes.map((mode) => {
+    const button = createElement("button", {
+      class: "mode-button", type: "button", "data-mode": mode.id, "aria-pressed": mode.id === state.modeId,
+    });
+    button.append(
+      createElement("span", { class: "mode-number" }, mode.id),
+      createElement("span", { class: "mode-name" }, mode.name),
+    );
+    return button;
+  });
+  modeList.replaceChildren(...buttons);
 }
 
 function renderReadouts(mode) {
   const index = Math.max(0, state.visiblePoints - 1);
-  readouts.innerHTML = mode.series.map((series, seriesIndex) => {
+  const items = mode.series.map((series, seriesIndex) => {
     const value = fixtureValue(mode, seriesIndex, index).toFixed(precisionFor(mode));
-    return `<div class="readout" style="--series-color: ${SERIES_COLORS[seriesIndex]}">
-      <div class="readout-value"><output>${value} ${modeUnit(mode, seriesIndex)}</output><span>${series}</span></div>
-      <small>Simulated fixture value</small>
-    </div>`;
-  }).join("");
+    const readout = createElement("div", { class: "readout" });
+    setSeriesColor(readout, SERIES_COLORS.at(seriesIndex));
+    const valueRow = createElement("div", { class: "readout-value" });
+    valueRow.append(
+      createElement("output", {}, `${value} ${modeUnit(mode, seriesIndex)}`),
+      createElement("span", {}, series),
+    );
+    readout.append(valueRow, createElement("small", {}, "Simulated fixture value"));
+    return readout;
+  });
+  readouts.replaceChildren(...items);
 }
 
 function chartRange(mode) {
@@ -78,18 +109,28 @@ function renderChart(mode) {
   const labels = [];
   for (let i = 0; i <= 6; i += 1) {
     const x = margin.left + (plotWidth * i) / 6;
-    grid.push(`<line class="grid-line" x1="${x}" y1="${margin.top}" x2="${x}" y2="${height - margin.bottom}"/>`);
-    labels.push(`<text class="axis-label" x="${x}" y="${height - 18}" text-anchor="middle">${(i * 4).toFixed(0)}s</text>`);
+    grid.push(createSvgElement("line", {
+      class: "grid-line", x1: x, y1: margin.top, x2: x, y2: height - margin.bottom,
+    }));
+    labels.push(createSvgElement("text", {
+      class: "axis-label", x: x, y: height - 18, "text-anchor": "middle",
+    }, `${(i * 4).toFixed(0)}s`));
   }
   for (let i = 0; i <= 4; i += 1) {
     const y = margin.top + (plotHeight * i) / 4;
     const value = max - ((max - min) * i) / 4;
-    grid.push(`<line class="grid-line" x1="${margin.left}" y1="${y}" x2="${width - margin.right}" y2="${y}"/>`);
-    labels.push(`<text class="axis-label" x="${margin.left - 10}" y="${y + 4}" text-anchor="end">${value.toFixed(precisionFor(mode))}</text>`);
+    grid.push(createSvgElement("line", {
+      class: "grid-line", x1: margin.left, y1: y, x2: width - margin.right, y2: y,
+    }));
+    labels.push(createSvgElement("text", {
+      class: "axis-label", x: margin.left - 10, y: y + 4, "text-anchor": "end",
+    }, value.toFixed(precisionFor(mode))));
     if (mode.id === 5) {
       const [rightMin, rightMax] = chartSeriesRange(mode, 1);
       const rightValue = rightMax - ((rightMax - rightMin) * i) / 4;
-      labels.push(`<text class="axis-label" style="fill:${SERIES_COLORS[1]}" x="${width - margin.right + 8}" y="${y + 4}" text-anchor="start">${rightValue.toFixed(1)}</text>`);
+      labels.push(createSvgElement("text", {
+        class: "axis-label", fill: SERIES_COLORS.at(1), x: width - margin.right + 8, y: y + 4, "text-anchor": "start",
+      }, rightValue.toFixed(1)));
     }
   }
 
@@ -101,19 +142,28 @@ function renderChart(mode) {
       const y = margin.top + plotHeight - ((value - seriesMin) / (seriesMax - seriesMin)) * plotHeight;
       return `${x.toFixed(2)},${y.toFixed(2)}`;
     }).join(" ");
-    return `<polyline class="series-line" stroke="${SERIES_COLORS[seriesIndex]}" points="${points}"/>`;
+    return createSvgElement("polyline", {
+      class: "series-line", stroke: SERIES_COLORS.at(seriesIndex), points,
+    });
   });
 
-  document.querySelector("#chart-grid").innerHTML = grid.join("");
-  document.querySelector("#chart-lines").innerHTML = lines.join("");
-  document.querySelector("#chart-labels").innerHTML = labels.join("");
+  document.querySelector("#chart-grid").replaceChildren(...grid);
+  document.querySelector("#chart-lines").replaceChildren(...lines);
+  document.querySelector("#chart-labels").replaceChildren(...labels);
   document.querySelector("#chart-label").textContent = mode.name;
   document.querySelector("#chart-progress").textContent = `${((state.visiblePoints - 1) / 5).toFixed(1)} s fixture`;
   document.querySelector("#chart-title").textContent = `Simulated ${mode.name.toLowerCase()} traces`;
   document.querySelector("#chart-description").textContent = `A deterministic line chart that previews the structure of mode ${mode.id} measurements. It is not recorded sensor data.`;
-  document.querySelector("#legend").innerHTML = mode.series.map((series, seriesIndex) =>
-    `<span class="legend-item" style="--series-color: ${SERIES_COLORS[seriesIndex]}"><span class="legend-swatch"></span>${series} · ${modeUnit(mode, seriesIndex)}</span>`
-  ).join("");
+  const legendItems = mode.series.map((series, seriesIndex) => {
+    const item = createElement("span", { class: "legend-item" });
+    setSeriesColor(item, SERIES_COLORS.at(seriesIndex));
+    item.append(
+      createElement("span", { class: "legend-swatch" }),
+      document.createTextNode(`${series} · ${modeUnit(mode, seriesIndex)}`),
+    );
+    return item;
+  });
+  document.querySelector("#legend").replaceChildren(...legendItems);
 }
 
 function renderWorkspace() {
@@ -129,13 +179,19 @@ function stopStream() {
   window.clearInterval(state.timer);
   state.timer = null;
   state.running = false;
-  toggleButton.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z"/></svg>Start simulated stream';
+  renderToggleButton("m8 5 11 7-11 7V5Z", "Start simulated stream");
+}
+
+function renderToggleButton(path, label) {
+  const icon = createSvgElement("svg", { "aria-hidden": "true", viewBox: "0 0 24 24" });
+  icon.append(createSvgElement("path", { d: path }));
+  toggleButton.replaceChildren(icon, document.createTextNode(label));
 }
 
 function startStream() {
   if (state.visiblePoints >= pointCount) state.visiblePoints = 1;
   state.running = true;
-  toggleButton.innerHTML = '<svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>Pause simulated stream';
+  renderToggleButton("M7 5h4v14H7zM13 5h4v14h-4z", "Pause simulated stream");
   state.timer = window.setInterval(() => {
     state.visiblePoints += 1;
     renderWorkspace();

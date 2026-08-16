@@ -244,11 +244,13 @@ def _source_mode_id(
     root, parse_errors = _parse_source_mode_root(path)
     if parse_errors:
         return None, parse_errors
-    assert root is not None
+    if root is None:
+        return None, [ValidationError(f"{path}: cannot parse mode config: parser returned no root")]
     raw_config, config_errors = _source_mode_config(path, root)
     if config_errors:
         return None, config_errors
-    assert raw_config is not None
+    if raw_config is None:
+        return None, [ValidationError(f"{path}: missing output bluetooth config value")]
     return _source_mode_value(path, raw_config, set(constants_modes.values()))
 
 

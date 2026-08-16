@@ -22,6 +22,16 @@ class DemoValidationTests(unittest.TestCase):
     def test_repository_demo_satisfies_static_contract(self) -> None:
         self.assertEqual(validate_demo(), [])
 
+    def test_demo_renders_dynamic_content_with_dom_nodes(self) -> None:
+        script = (REPO_ROOT / "demo" / "demo.js").read_text(encoding="utf-8")
+
+        self.assertNotIn("innerHTML", script)
+        self.assertNotIn("outerHTML", script)
+        self.assertIn("document.createElement(", script)
+        self.assertIn("document.createElementNS(", script)
+        self.assertIn(".replaceChildren(", script)
+        self.assertIn(".textContent =", script)
+
     def test_missing_local_asset_is_rejected(self) -> None:
         temporary, demo_copy = self.copy_demo()
         self.addCleanup(temporary.cleanup)
