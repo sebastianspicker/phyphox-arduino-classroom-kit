@@ -28,6 +28,7 @@
 /docs/agent/
 
 # Editors
+/.mcp.json
 .vscode/
 .cursor/
 .idea/
