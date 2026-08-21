@@ -60,17 +60,6 @@ The `Security baseline` job runs:
 
 These checks are repository guardrails, not a complete security assessment.
 
-## Static demo validation
-
-`.github/workflows/pages.yml` is validation-only while component rights and
-asset provenance remain unresolved. It has read-only repository permission and
-runs JavaScript syntax, local asset and fragment, semantic landmark, and
-keyboard-focus contract checks for `demo/`. It does not configure Pages, upload
-an artifact, or deploy a site.
-
-The static checks do not replace keyboard testing in a browser or assistive
-technology review.
-
 ## Permissions and network access
 
 The primary workflow grants read-only `contents` and `actions` permissions. Pull

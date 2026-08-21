@@ -42,7 +42,7 @@ multimeter transit path. See the
 [astronomy experiments companion](docs/ASTRONOMY_EXPERIMENTS_COMPANION.md) for
 the measurement path and interpretation limits of each file.
 
-The static classroom preview lives in `demo/` and uses deterministic fixture
+The static classroom preview lives in `demo/` and uses deterministic sample
 data with clearly marked simulated controls. Public deployment is disabled
 while distribution rights remain unresolved; the repository remains the source
 of truth.
@@ -341,7 +341,7 @@ channel mapping and failure behavior.
 | `experiments/` | Generated core files, constants, and astronomy files |
 | `tools/` | XML postprocessing and validation programs |
 | `scripts/` | Build, validation, compile, and security entry points |
-| `tests/` | Python contract and regression tests |
+| `tests/` | Focused Python safety and transformation contracts |
 | `docs/` | Architecture, operation, CI, and astronomy reference |
 
 The detailed data and validation flows are in

@@ -71,22 +71,13 @@ and core validator select only root `experiments/*.phyphox` files.
 
 ## Test suite
 
-The active pytest suite uses a flat `tests/` layout:
+The active pytest suite is deliberately compact:
 
 | File | Responsibility |
 | --- | --- |
-| `test_astronomy_contracts.py` | Astronomy inventory, localization, structure, semantics, and companion wording |
-| `test_phyphox_file_contracts.py` | Core source and generated-file inventory, locales, links, and validation |
-| `test_phyphox_physics.py` | Core experiment modes, formulas, units, views, and exports |
-| `test_phyphox_validate.py` | Validator behavior and invalid-file cases |
-| `test_phyphox_validate_cli.py` | Validator command entry point |
-| `test_phyphox_validate_helpers.py` | Validator helpers, mode loading, and error value behavior |
-| `test_postprocess_phyphox_xml.py` | XML postprocessing function and command behavior |
-| `test_repo_guardrails.py` | Shared constants, workflow wiring, links, icons, and secret-scan integration |
-| `test_validate_xinclude_paths.py` | Local include boundary and command behavior |
+| `test_runtime_contracts.py` | XML validation, local XInclude confinement, and postprocessing behavior using inline data |
 
-`tests/__init__.py` makes shared test support imports explicit. Test caches and
-reports are ignored; active test source files are not.
+Test caches and reports are ignored; active test source files are not.
 
 ## Firmware flow
 

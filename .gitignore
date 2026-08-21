@@ -139,3 +139,16 @@ xcuserdata/
 # Codacy local generated state
 .codacy/tools-configs/
 .codacy/cli-config.yaml
+
+# Generated test and coverage output (local only)
+/coverage/
+/htmlcov/
+/.coverage
+/.coverage.*
+/.pytest_cache/
+/test-results/
+/playwright-report/
+/blob-report/
+/coverage.xml
+/junit.xml
+/junit-*.xml

@@ -59,9 +59,7 @@ separate from the common physical quantity consumed by views and exports.
 Run:
 
 ```sh
-pytest -q \
-  tests/test_astronomy_contracts.py \
-  tests/test_phyphox_physics.py
+pytest -q tests/test_runtime_contracts.py
 bash scripts/validate-xml.sh
 ```
 
